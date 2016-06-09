@@ -12,13 +12,14 @@
 # 
 #####################################################################
 from __future__ import print_function
-from vizdoom import DoomGame
-from vizdoom import Mode
-from vizdoom import Button
-from vizdoom import GameVariable
-from vizdoom import ScreenFormat
-from vizdoom import ScreenResolution
+#from vizdoom import DoomGame
+#from vizdoom import Mode
+#from vizdoom import Button
+#from vizdoom import GameVariable
+#from vizdoom import ScreenFormat
+#from vizdoom import ScreenResolution
 # Or just use from vizdoom import *
+from vizdoom import *
 def initgame():
 # Create DoomGame instance. It will run the game and communicate with you.
     game = DoomGame()
@@ -28,10 +29,10 @@ def initgame():
 # If load_config is used in-code configuration will work. Note that the most recent changes will add to previous ones.
 #game.load_config("../../examples/config/basic.cfg")
 
-    vizdoom_path = "/home/tbfk/Mount/intHDD/Documents/Studium/TU_Berlin/Elektrotechnik_Master/SS16/Projekt_Nachrichtenuebertragung/ViZDoom"
+    vizdoom_path = "/home/martin/python/ViZDoom/ViZDoom-master"
 
 # Sets path to vizdoom engine executive which will be spawned as a separate process. Default is "./vizdoom".
-    game.load_config(vizdoom_path + "/test/config/basic.cfg")
+    game.load_config(vizdoom_path + "/examples/config/basic.cfg")
 
 # Sets path to vizdoom engine executive which will be spawned as a separate process. Default is "./vizdoom".
     game.set_vizdoom_path(vizdoom_path + "/bin/vizdoom")
@@ -92,6 +93,7 @@ def initgame():
 # Define some actions. Each list entry corresponds to declared buttons:
 # MOVE_LEFT, MOVE_RIGHT, ATTACK
 # 5 more combinations are naturally possible but only 3 are included for transparency when watching.	
-    actions = [[True,False,False],[False,True,False],[False,False,True]]
+    #actions = [[True,False,False],[False,True,False],[False,False,True]]
+    actions = [[1,0,0],[0,1,0],[0,0,1]]
     num_actions = 3
     return actions, num_actions, game

@@ -7,12 +7,12 @@ from initNetwork import *
 
 
 def trainNetwork(actions, game, s, readout, h_fc1, sess):
-    episodes = 2
+    episodes = 20
 
 # Sets time that will pause the engine after each action.
 # Without this everything would go too fast for you to keep track of what's happening.
 # 0.05 is quite arbitrary, nice to watch with my hardware setup. 
-    sleep_time = 0.028
+    sleep_time = 10.028
 
     for i in range(episodes):
         print("Episode #" + str(i+1))
@@ -27,6 +27,7 @@ def trainNetwork(actions, game, s, readout, h_fc1, sess):
 
         # Makes a random action and get remember reward.
             r = game.make_action(choice(actions))
+            print(choice(actions))
 
         # Prints state's game variables. Printing the image is quite pointless.
             print("State #" + str(s.number))
@@ -41,7 +42,8 @@ def trainNetwork(actions, game, s, readout, h_fc1, sess):
         print("Episode finished.")
         print("total reward:", game.get_total_reward())
         print("************************")
-        game.close()
+        
+    game.close()
     
 def main():
     actions, num_actions, game = initgame()

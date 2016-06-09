@@ -1,15 +1,6 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tf
 
-GAMMA = 0.99 # decay rate of past observations
-OBSERVE = 500. # timesteps to observe before training
-EXPLORE = 500. # frames over which to anneal epsilon
-FINAL_EPSILON = 0.05 # final value of epsilon
-INITIAL_EPSILON = 1.0 # starting value of epsilon
-REPLAY_MEMORY = 590000 # number of previous transitions to remember
-BATCH = 32 # size of minibatch
-K = 1 # only select an action every Kth frame, repeat prev for others
-
 def weight_variable(shape):
     initial = tf.truncated_normal(shape, stddev = 0.01)
     return tf.Variable(initial)
@@ -42,7 +33,7 @@ def createNetwork(num_actions):
     b_fc2 = bias_variable([num_actions])
 
     # input layer
-    s = tf.placeholder("float", [None, 160, 120, 4])
+    s = tf.placeholder("float", [None, 80, 80, 4])
 
     # hidden layers
     h_conv1 = tf.nn.relu(conv2d(s, W_conv1, 4) + b_conv1)
