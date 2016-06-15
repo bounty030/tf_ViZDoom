@@ -12,13 +12,6 @@
 # 
 #####################################################################
 from __future__ import print_function
-#from vizdoom import DoomGame
-#from vizdoom import Mode
-#from vizdoom import Button
-#from vizdoom import GameVariable
-#from vizdoom import ScreenFormat
-#from vizdoom import ScreenResolution
-# Or just use from vizdoom import *
 from vizdoom import *
 def initgame():
 # Create DoomGame instance. It will run the game and communicate with you.

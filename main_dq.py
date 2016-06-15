@@ -1,26 +1,35 @@
 #!/usr/bin/python
 
 from __future__ import print_function
-from time import sleep
 import random
 from initGame import initgame
 from initNetwork import *
 import tensorflow as tf
 import numpy as np
 from collections import deque
+import nn_calc as nc
 
-import cv2
 
-TEST = False # Testrun
-IMAGE_SIZE = 80 # resollution of the image for the network (square)
-GAMMA = 0.99 # decay rate of past observations
-OBSERVE = 500. # timesteps to observe before training
-EXPLORE = 1000. # frames over which to anneal epsilon
-FINAL_EPSILON = 0.1 # final value of epsilon
+IMAGE_SIZE_X = 80 # resolution of the image for the network
+IMAGE_SIZE_Y = 80
+
+KERNEL1 = 4
+KERNEL2 = 3
+KERNEL3 = 2
+
+STRIDE1 = 4
+STRIDE2 = 2
+STRIDE3 = 1
+
+GAMMA = 0.95 # decay rate of past observations
+OBSERVE = 500 # timesteps to observe before training
+EXPLORE = 300000 # frames over which to anneal epsilon
+FINAL_EPSILON = 0.05 # final value of epsilon
 INITIAL_EPSILON = 1.0 # starting value of epsilon
 REPLAY_MEMORY = 590000 # number of previous transitions to remember
 BATCH = 32 # size of minibatch
 K = 1 # only select an action every Kth frame, repeat prev for others
+STACK = 1 # number of images stacked to a state
 GAME = "Doom"
 
 
@@ -59,17 +68,25 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
     D = deque()
     # todo check vizdoom replay memory
     
-    # do nothing from deep_q
-    # i would say we just start with an action
     # get first image
     # index zero, because buffer is of form (n,y,x)
-    # n -> stack?
+    # n -> stack? 
+    
     x_t = game_state.image_buffer[0,:,:]
-    x_t = cv2.transpose(x_t)
-    x_t = cv2.resize(x_t, (IMAGE_SIZE, IMAGE_SIZE))
+    x_t = nc.image_postprocessing(x_t, IMAGE_SIZE_X, IMAGE_SIZE_Y)
+    #x_t = cv2.transpose(x_t)
+    #x_t = cv2.resize(x_t, (IMAGE_SIZE, IMAGE_SIZE))
+    #x_t = x_t[(IMAGE_SIZE/2 - MIDDLE_STRIPE_SIZE/2):(IMAGE_SIZE/2 + MIDDLE_STRIPE_SIZE/2),:]
     
     # stack images
-    s_t = np.stack((x_t, x_t, x_t, x_t), axis = 2)
+    #s_t = np.stack((x_t, x_t, x_t, x_t), axis = 2)
+    
+    #x_t = np.reshape(x_t, (len(x_t), len(x_t[0]), 1))
+    #s_t = x_t
+    #for i in range(1, STACK):
+    #    s_t = np.append(x_t, s_t, axis=2)
+    s_t = nc.create_state(x_t, STACK)
+        
     
     # tensorflow kram den ich nicht verstehe
     saver = tf.train.Saver()
@@ -82,12 +99,15 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
         saver.restore(sess, checkpoint.model_checkpoint_path)
         print("Successfully loaded:", checkpoint.model_checkpoint_path)
     else:
-        print("Could not find old network weights")
+        print("Could not find old network weights, starting from scratch")
         
     #start the learning
     epsilon = INITIAL_EPSILON
     t = 0
-    # extra fuer tim so gelassen!
+
+    
+    print("Observing for ", OBSERVE, " turns, calibrating afterwards")
+    
     while "pigs" != "fly":
         # get the Q-values of every action for the current state
         readout_t = readout.eval(feed_dict = {s : [s_t]})[0]
@@ -124,12 +144,14 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
             #get the new game state and the new image
             game_state = game.get_state()
             x_t1 = game_state.image_buffer[0,:,:]
-            x_t1 = cv2.transpose(x_t1)
-            x_t1 = cv2.resize(x_t1, (IMAGE_SIZE, IMAGE_SIZE))
+            #x_t1 = cv2.transpose(x_t1)
+            #x_t1 = cv2.resize(x_t1, (IMAGE_SIZE, IMAGE_SIZE))
+            x_t1 = nc.image_postprocessing(x_t1, IMAGE_SIZE_X, IMAGE_SIZE_Y)
             
             #stack image with the last three images from the old state to create new state
-            x_t1 = np.reshape(x_t1, (80, 80, 1))
-            s_t1 = np.append(x_t1, s_t[:,:,1:], axis = 2)
+            #x_t1 = np.reshape(x_t1, (40, IMAGE_SIZE, 1))
+            #s_t1 = np.append(x_t1, s_t[:,:,1:], axis = 2)
+            s_t1 = nc.update_state(s_t, x_t1)
             
             # store the transition in D
             D.append((s_t, a_t, r_t, s_t1, terminal))
@@ -170,77 +192,26 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
         # update the old values
         s_t = s_t1
         t += 1
-            
-        if (TEST and t>5):
-            game.close()
-            break
         
         # save progress every 10000 iterations
-        if t % 3000 == 0:
+        if t % 100000 == 0:
             saver.save(sess, 'logs/' + GAME + '-dqn', global_step = t)
 
-        # print info
-        state = ""
-        if t <= OBSERVE:
-            state = "observe"
-        elif t > OBSERVE and t <= OBSERVE + EXPLORE:
-            state = "explore"
-        else:
-            state = "train"
-        print("TIMESTEP", t, "/ STATE", state, "/ EPSILON", epsilon, "/ ACTION", action_index, "/ REWARD", r_t, "/ Q_MAX %e" % np.max(readout_t))
+         # print info
+#        state = ""
+#        if t <= OBSERVE:
+#            state = "observe"
+#        elif t > OBSERVE and t <= OBSERVE + EXPLORE:
+#            state = "explore"
+#        else:
+#            state = "train"
+#        print("TIMESTEP", t, "/ STATE", state, "/ EPSILON", epsilon, "/ ACTION", action_index, "/ REWARD", r_t, "/ Q_MAX %e" % np.max(readout_t))
 
-        # write info to files
-        '''
-        if t % 10000 <= 100:
-            a_file.write(",".join([str(x) for x in readout_t]) + '\n')
-            h_file.write(",".join([str(x) for x in h_fc1.eval(feed_dict={s:[s_t]})[0]]) + '\n')
-            cv2.imwrite("logs_tetris/frame" + str(t) + ".png", x_t1)
-        '''
-            
-            
-    
-#    
-#    
-#    episodes = 20
-#
-#    # Sets time that will pause the engine after each action.
-#    # Without this everything would go too fast for you to keep track of what's happening.
-#    # 0.05 is quite arbitrary, nice to watch with my hardware setup. 
-#    sleep_time = 0.028
-#
-#    for i in range(episodes):
-#        print("Episode #" + str(i+1))
-#
-#    # Starts a new episode. It is not needed right after init() but it doesn't cost much. At least the loop is nicer.
-#        game.new_episode()
-#
-#        while not game.is_episode_finished():
-#
-#        # Gets the state
-#            s = game.get_state()
-#
-#        # Makes a random action and get remember reward.
-#            r = game.make_action(random.choice(actions))
-#
-#        # Prints state's game variables. Printing the image is quite pointless.
-#            print("State #" + str(s.number))
-#            print("Game variables:", s.game_variables[0])
-#            print("Reward:", r)
-#            print("=====================")
-#
-#            if sleep_time>0:
-#                sleep(sleep_time)
-#
-#    # Check how the episode went.
-#        print("Episode finished.")
-#        print("total reward:", game.get_total_reward())
-#        print("************************")
-#        game.close()
-    
+      
 def main():
     actions, num_actions, game = initgame()
     sess = tf.InteractiveSession()
-    s, readout, h_fc1 = createNetwork(num_actions)
+    s, readout, h_fc1 = createNetwork(num_actions, STACK, 20, IMAGE_SIZE_Y, KERNEL1, STRIDE1, KERNEL2, STRIDE2, KERNEL3, STRIDE3)
     trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess)
     
 if __name__ == "__main__":
