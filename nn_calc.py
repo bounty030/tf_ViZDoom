@@ -38,7 +38,7 @@ def image_postprocessing(img, t_size_x, t_size_y):
     
     #current temp modification
     MIDDLE_STRIPE_SIZE = 20
-    return res[(t_size_y/2 - MIDDLE_STRIPE_SIZE/2):(t_size_y/2 + MIDDLE_STRIPE_SIZE/2),:]
+    return res[(t_size_x/2 - MIDDLE_STRIPE_SIZE/2):(t_size_x/2 + MIDDLE_STRIPE_SIZE/2),:]
     
 def update_state(state, img):
     img = np.reshape(img, (len(img), len(img[0]), 1))
