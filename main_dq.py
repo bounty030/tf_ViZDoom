@@ -22,8 +22,8 @@ STRIDE2 = 2
 STRIDE3 = 1
 
 GAMMA = 0.95 # decay rate of past observations
-OBSERVE = 500 # timesteps to observe before training
-EXPLORE = 300000 # frames over which to anneal epsilon
+OBSERVE = 1000 # timesteps to observe before training
+EXPLORE = 1 # frames over which to anneal epsilon
 FINAL_EPSILON = 0.05 # final value of epsilon
 INITIAL_EPSILON = 1.0 # starting value of epsilon
 REPLAY_MEMORY = 590000 # number of previous transitions to remember
@@ -66,34 +66,22 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
     
     # store the previous observations in replay memory
     D = deque()
-    # todo check vizdoom replay memory
     
     # get first image
     # index zero, because buffer is of form (n,y,x)
     # n -> stack? 
-    
     x_t = game_state.image_buffer[0,:,:]
     x_t = nc.image_postprocessing(x_t, IMAGE_SIZE_X, IMAGE_SIZE_Y)
-    #x_t = cv2.transpose(x_t)
-    #x_t = cv2.resize(x_t, (IMAGE_SIZE, IMAGE_SIZE))
-    #x_t = x_t[(IMAGE_SIZE/2 - MIDDLE_STRIPE_SIZE/2):(IMAGE_SIZE/2 + MIDDLE_STRIPE_SIZE/2),:]
     
     # stack images
-    #s_t = np.stack((x_t, x_t, x_t, x_t), axis = 2)
-    
-    #x_t = np.reshape(x_t, (len(x_t), len(x_t[0]), 1))
-    #s_t = x_t
-    #for i in range(1, STACK):
-    #    s_t = np.append(x_t, s_t, axis=2)
     s_t = nc.create_state(x_t, STACK)
         
-    
-    # tensorflow kram den ich nicht verstehe
+    # saver for the weights
     saver = tf.train.Saver()
-    #start session
+    # start session
     sess.run(tf.initialize_all_variables())
     
-    # saving and loading weights it seems
+    # saving and loading weights
     checkpoint = tf.train.get_checkpoint_state("logs")
     if checkpoint and checkpoint.model_checkpoint_path:
         saver.restore(sess, checkpoint.model_checkpoint_path)
@@ -101,12 +89,12 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
     else:
         print("Could not find old network weights, starting from scratch")
         
-    #start the learning
+    # define learning parameters
     epsilon = INITIAL_EPSILON
     t = 0
 
     
-    print("Observing for ", OBSERVE, " turns, calibrating afterwards")
+    print("Observing for", OBSERVE, "turns, calibrating afterwards")
     
     while "pigs" != "fly":
         # get the Q-values of every action for the current state
@@ -114,7 +102,6 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
         # the zero makes an array out of the returend matrix (3,1)
         
         # choose random action or best action (dependent on epsilon)
-        #a_t = np.zeros([num_actions])
         a_t =  [0] * num_actions
         action_index = 0
         if random.random() <= epsilon or t <= OBSERVE:
@@ -128,14 +115,12 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
         if epsilon > FINAL_EPSILON and t > OBSERVE:
             epsilon -= (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORE
             
-        # perfoem action and create new state (for K frames, train network after that)
+        # perform action and create new state (for K frames, train network after that)
         for i in range(0, K):
-            # run the selected action and observe next state and reward
-            #print("a_t: ",a_t)
-            r_t = game.make_action(a_t)
             
+            # run the selected action and observe next state and reward
+            r_t = game.make_action(a_t)
             terminal = game.is_episode_finished()
-            #print("terminal:", terminal)
             
             # new: restart the game if it terminated?
             if game.is_episode_finished():
@@ -144,13 +129,9 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
             #get the new game state and the new image
             game_state = game.get_state()
             x_t1 = game_state.image_buffer[0,:,:]
-            #x_t1 = cv2.transpose(x_t1)
-            #x_t1 = cv2.resize(x_t1, (IMAGE_SIZE, IMAGE_SIZE))
             x_t1 = nc.image_postprocessing(x_t1, IMAGE_SIZE_X, IMAGE_SIZE_Y)
             
             #stack image with the last three images from the old state to create new state
-            #x_t1 = np.reshape(x_t1, (40, IMAGE_SIZE, 1))
-            #s_t1 = np.append(x_t1, s_t[:,:,1:], axis = 2)
             s_t1 = nc.update_state(s_t, x_t1)
             
             # store the transition in D
@@ -196,6 +177,8 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
         # save progress every 10000 iterations
         if t % 100000 == 0:
             saver.save(sess, 'logs/' + GAME + '-dqn', global_step = t)
+            print("Saved weights after", t, "steps")
+            
 
          # print info
 #        state = ""
