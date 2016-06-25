@@ -39,7 +39,7 @@ def image_postprocessing(img, t_size_x, t_size_y):
     #current temp modification
     MIDDLE_STRIPE_SIZE = 20
     res = res[(t_size_x/2 - MIDDLE_STRIPE_SIZE/2):(t_size_x/2 + MIDDLE_STRIPE_SIZE/2),:]
-    ret,res = cv2.threshold(color,10,255,cv2.THRESH_BINARY)
+    ret,res = cv2.threshold(res,10,255,cv2.THRESH_BINARY)
     #cv2.imwrite('input.png',res)
     return res
     
