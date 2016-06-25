@@ -32,15 +32,16 @@ def post_pool(dim_x, dim_y):
     
     return pool_x, pool_y
     
-def image_postprocessing(img, t_size_x, t_size_y):
+def image_postprocessing(img, t_size_x, t_size_y, bool_filter):
     res = cv2.resize(img, (t_size_x, t_size_y))
     #return res
     
     #current temp modification
     MIDDLE_STRIPE_SIZE = 20
     res = res[(t_size_x/2 - MIDDLE_STRIPE_SIZE/2):(t_size_x/2 + MIDDLE_STRIPE_SIZE/2),:]
-    ret,res = cv2.threshold(res,10,255,cv2.THRESH_BINARY)
-    #cv2.imwrite('input.png',res)
+    if bool_filter:
+        ret,res = cv2.threshold(res,18,255,cv2.THRESH_BINARY_INV)
+    cv2.imwrite('input.png',res)
     return res
     
 def update_state(state, img):
