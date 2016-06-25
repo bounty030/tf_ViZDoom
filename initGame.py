@@ -22,7 +22,7 @@ def initgame():
 # If load_config is used in-code configuration will work. Note that the most recent changes will add to previous ones.
 #game.load_config("../../examples/config/basic.cfg")
 
-    vizdoom_path = "/home/martin/python/ViZDoom/ViZDoom-master"
+    vizdoom_path = "/home/tbfk/Mount/intHDD/Documents/Studium/TU_Berlin/Elektrotechnik_Master/SS16/Projekt_Nachrichtenuebertragung/ViZDoom"
 
 # Sets path to vizdoom engine executive which will be spawned as a separate process. Default is "./vizdoom".
     game.load_config(vizdoom_path + "/examples/config/basic.cfg")
@@ -45,7 +45,7 @@ def initgame():
     game.set_screen_resolution(ScreenResolution.RES_160X120)
 
 # Sets the screen buffer format. Not used here but now you can change it. Defalut is CRCGCB.
-    game.set_screen_format(ScreenFormat.GRAY8)
+    game.set_screen_format(ScreenFormat.CRCGCB)
 
 # Sets other rendering options
     game.set_render_hud(False)
@@ -69,7 +69,7 @@ def initgame():
     game.set_episode_start_time(10)
 
 # Makes the window appear (turned on by default)
-    game.set_window_visible(True)
+    game.set_window_visible(False)
 
 # Turns on the sound. (turned off by default)
     game.set_sound_enabled(False)
