@@ -22,7 +22,9 @@ def initgame():
 # If load_config is used in-code configuration will work. Note that the most recent changes will add to previous ones.
 #game.load_config("../../examples/config/basic.cfg")
 
-    vizdoom_path = "/home/tbfk/Mount/intHDD/Documents/Studium/TU_Berlin/Elektrotechnik_Master/SS16/Projekt_Nachrichtenuebertragung/ViZDoom"
+    #vizdoom_path = "/home/tbfk/Mount/intHDD/Documents/Studium/TU_Berlin/Elektrotechnik_Master/SS16/Projekt_Nachrichtenuebertragung/ViZDoom"
+    #vizdoom_path = "/home/martin/python/ViZDoom"
+    vizdoom_path = "../ViZDoom"
 
 # Sets path to vizdoom engine executive which will be spawned as a separate process. Default is "./vizdoom".
     game.load_config(vizdoom_path + "/examples/config/basic.cfg")
@@ -42,7 +44,7 @@ def initgame():
     game.set_doom_map("map01")
 
 # Sets resolution. Default is 320X240
-    game.set_screen_resolution(ScreenResolution.RES_160X120)
+    game.set_screen_resolution(ScreenResolution.RES_640X480)
 
 # Sets the screen buffer format. Not used here but now you can change it. Defalut is CRCGCB.
     game.set_screen_format(ScreenFormat.CRCGCB)

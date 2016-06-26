@@ -22,8 +22,8 @@ STRIDE2 = 2
 STRIDE3 = 1
 
 GAMMA = 0.95 # decay rate of past observations
-OBSERVE = 1000 # timesteps to observe before training
-EXPLORE = 1 # frames over which to anneal epsilon
+OBSERVE = 100000 # timesteps to observe before training
+EXPLORE = 1000000 # frames over which to anneal epsilon
 FINAL_EPSILON = 0.05 # final value of epsilon
 INITIAL_EPSILON = 1.0 # starting value of epsilon
 REPLAY_MEMORY = 590000 # number of previous transitions to remember
@@ -69,9 +69,9 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
     
     # get first image
     # index zero, because buffer is of form (n,y,x)
-    # n -> stack? 
+    # n -> color? 
     x_t = game_state.image_buffer[0,:,:]
-    x_t = nc.image_postprocessing(x_t, IMAGE_SIZE_X, IMAGE_SIZE_Y)
+    x_t = nc.image_postprocessing(x_t, IMAGE_SIZE_X, IMAGE_SIZE_Y, True)
     
     # stack images
     s_t = nc.create_state(x_t, STACK)
@@ -129,7 +129,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
             #get the new game state and the new image
             game_state = game.get_state()
             x_t1 = game_state.image_buffer[0,:,:]
-            x_t1 = nc.image_postprocessing(x_t1, IMAGE_SIZE_X, IMAGE_SIZE_Y)
+            x_t1 = nc.image_postprocessing(x_t1, IMAGE_SIZE_X, IMAGE_SIZE_Y, True)
             
             #stack image with the last three images from the old state to create new state
             s_t1 = nc.update_state(s_t, x_t1)
