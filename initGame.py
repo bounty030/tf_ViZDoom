@@ -27,7 +27,7 @@ def initgame():
     vizdoom_path = "../ViZDoom"
 
 # Sets path to vizdoom engine executive which will be spawned as a separate process. Default is "./vizdoom".
-    game.load_config(vizdoom_path + "/examples/config/basic.cfg")
+    game.load_config(vizdoom_path + "/examples/config/health_gathering.cfg")
 
 # Sets path to vizdoom engine executive which will be spawned as a separate process. Default is "./vizdoom".
     game.set_vizdoom_path(vizdoom_path + "/bin/vizdoom")
@@ -38,7 +38,7 @@ def initgame():
 
 # Sets path to additional resources iwad file which is basically your scenario iwad.
 # If not specified default doom2 maps will be used and it's pretty much useles... unless you want to play doom.
-    game.set_doom_scenario_path(vizdoom_path + "/scenarios/basic.wad")
+    game.set_doom_scenario_path(vizdoom_path + "/scenarios/health_gathering.wad")
 
 # Sets map to start (scenario .wad files can contain many maps).
     game.set_doom_map("map01")
@@ -57,9 +57,9 @@ def initgame():
     game.set_render_particles(False)
 
 # Adds buttons that will be allowed. 
-    game.add_available_button(Button.MOVE_LEFT)
-    game.add_available_button(Button.MOVE_RIGHT)
-    game.add_available_button(Button.ATTACK)
+    game.add_available_button(Button.TURN_LEFT)
+    game.add_available_button(Button.TURN_RIGHT)
+    game.add_available_button(Button.MOVE_FORWARD)
 
 # Adds game variables that will be included in state.
     game.add_available_game_variable(GameVariable.AMMO2)
@@ -86,7 +86,7 @@ def initgame():
     game.init()
 
 # Define some actions. Each list entry corresponds to declared buttons:
-# MOVE_LEFT, MOVE_RIGHT, ATTACK
+# MOVE_LEFT, MOVE_RIGHT, MOVE_FORWARD
 # 5 more combinations are naturally possible but only 3 are included for transparency when watching.	
     #actions = [[True,False,False],[False,True,False],[False,False,True]]
     actions = [[1,0,0],[0,1,0],[0,0,1]]
