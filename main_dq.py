@@ -22,8 +22,8 @@ STRIDE2 = 2
 STRIDE3 = 1
 
 GAMMA = 0.95 # decay rate of past observations
-OBSERVE = 100000 # timesteps to observe before training
-EXPLORE = 1000000 # frames over which to anneal epsilon
+OBSERVE = 1000 # timesteps to observe before training
+EXPLORE = 1 # frames over which to anneal epsilon
 FINAL_EPSILON = 0.05 # final value of epsilon
 INITIAL_EPSILON = 1.0 # starting value of epsilon
 REPLAY_MEMORY = 590000 # number of previous transitions to remember

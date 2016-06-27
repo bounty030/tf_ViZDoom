@@ -71,7 +71,7 @@ def initgame():
     game.set_episode_start_time(10)
 
 # Makes the window appear (turned on by default)
-    game.set_window_visible(False)
+    game.set_window_visible(True)
 
 # Turns on the sound. (turned off by default)
     game.set_sound_enabled(False)
