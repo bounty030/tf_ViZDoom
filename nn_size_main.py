@@ -10,10 +10,10 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 
-DIM_X = 200
-DIM_Y = 200
+DIM_X = 100
+DIM_Y = 50
 
-KERNEL1 = 3
+KERNEL1 = 5
 KERNEL2 = 3
 KERNEL3 = 2
 
@@ -59,12 +59,22 @@ def main():
     img = cv2.imread('image.png')
     
     # define kernel here!
-    kernel = np.zeros((KERNEL1,KERNEL1))
-    kernel[0,0] = 1
-    kernel[KERNEL1-1,0] = -1
-    kernel[0,KERNEL1-1] = -1    
-    kernel[KERNEL1-1,KERNEL1-1] = 1
+    kernel = (np.zeros((KERNEL1,KERNEL1))) * -1
+    #kernel[0,0] = 1
+    #kernel[KERNEL1-1,0] = -1
+    #kernel[0,KERNEL1-1] = -1    
+    #kernel[KERNEL1-1,KERNEL1-1] = 1
     
+    #kernel[(KERNEL1-1)/2, (KERNEL1-1)/2] = KERNEL1*KERNEL1-1
+    
+    kernel[0,0] = -1
+    kernel[1,0] = -1
+    kernel[2,0] = -1
+    kernel[0,2] = 1
+    kernel[1,2] = 1
+    kernel[2,2] = 1
+    
+
     # convolution
     dst = cv2.filter2D(img,-1,kernel)
     

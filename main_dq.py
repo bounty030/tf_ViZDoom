@@ -10,10 +10,10 @@ from collections import deque
 import nn_calc as nc
 
 
-IMAGE_SIZE_X = 200 # resolution of the image for the network
-IMAGE_SIZE_Y = 200
+IMAGE_SIZE_X = 120 # resolution of the image for the network
+IMAGE_SIZE_Y = 120
 
-KERNEL1 = 4
+KERNEL1 = 5
 KERNEL2 = 3
 KERNEL3 = 2
 
@@ -69,7 +69,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, feedback):
     gray = nc.getGray(game_state)
     depth = game_state.image_buffer[3,:,:]
     
-    x_t = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_X, IMAGE_SIZE_Y)
+    x_t = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X)
     
     # stack images
     s_t = nc.create_state(x_t, STACK)
@@ -131,7 +131,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, feedback):
             #x_t1 = nc.image_postprocessing(x_t1, IMAGE_SIZE_X, IMAGE_SIZE_Y, True)
             gray = nc.getGray(game_state)
             depth = game_state.image_buffer[3,:,:]
-            x_t1 = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_X, IMAGE_SIZE_Y)
+            x_t1 = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X)
             
             #stack image with the last three images from the old state to create new state
             s_t1 = nc.update_state(s_t, x_t1)
@@ -178,7 +178,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, feedback):
         
         if feedback:
             if t % 200 == 0:
-                nc.store_img(x_t)
+                nc.store_img(x_t1)
         
         # save progress every 10000 iterations
         if t % 100000 == 0:
@@ -199,7 +199,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, feedback):
 def main():
     actions, num_actions, game = initgame()
     sess = tf.InteractiveSession()
-    s, readout, h_fc1 = createNetwork(num_actions, STACK, IMAGE_SIZE_X, IMAGE_SIZE_Y, KERNEL1, STRIDE1, KERNEL2, STRIDE2, KERNEL3, STRIDE3)
+    s, readout, h_fc1 = createNetwork(num_actions, STACK, IMAGE_SIZE_Y/2, IMAGE_SIZE_X, KERNEL1, STRIDE1, KERNEL2, STRIDE2, KERNEL3, STRIDE3)
     trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, True)
     
 if __name__ == "__main__":
