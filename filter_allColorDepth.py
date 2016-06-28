@@ -95,9 +95,9 @@ def initgame():
 # Define some actions. Each list entry corresponds to declared buttons:
 # MOVE_LEFT, MOVE_RIGHT, ATTACK
 # 5 more combinations are naturally possible but only 3 are included for transparency when watching.	
-  actions = [[True,False,False],[False,True,False],[False,False,True]]
+  actions = [[True,False,False],[False,True,False],[False,False,True],[True,False,True],[False,True,True]]
   game.init()
-  episodes = 80
+  episodes = 120
   #episode_timeout = 80000
   game.new_episode()
   game_state = game.get_state()
@@ -107,20 +107,22 @@ def initgame():
 # 0.05 is quite arbitrary, nice to watch with my hardware setup. 
   sleep_time = 0.05
   for i in range(episodes):
-    #s = game.get_state()
-    r = game.make_action([False,False,True])
+    if i < 80:
+        r = game.make_action([False,False,True])
+    else:
+        r = game.make_action([True,False,False])
+        
+    print ('writing image')
+    game_state = game.get_state()
+    x =game_state.image_buffer
     red = game_state.image_buffer[0,:,:]
     green = game_state.image_buffer[1,:,:]
     blue = game_state.image_buffer[2,:,:]
     depth = game_state.image_buffer[3,:,:]
-    print ('writing image')
-    cv2.imwrite('test1.png',game_state.image_buffer[3,:,:])
+    
     if sleep_time>0:
         sleep(sleep_time)
         print("Episode #" + str(i+1))
-
-    depth2 = game_state.image_buffer[3,:,:]
-    cv2.imwrite('test2.png',depth2)
 
   game.close()
     
@@ -128,10 +130,13 @@ def initgame():
 
 def filtering(red, green, blue, depth):
 
-  IMAGE_SIZE = 80 # resolution of the image for the network (square)
+  IMAGE_SIZE = 200 # resolution of the image for the network (square)
 
   #Create original image
   original = cv2.merge((blue,green,red))  
+  
+  original = cv2.cvtColor(original, cv2.COLOR_RGB2GRAY)
+  original = cv2.resize(original, (IMAGE_SIZE, IMAGE_SIZE))
   cv2.imwrite('original/original.png',original)
 
   #Resize
@@ -151,7 +156,28 @@ def filtering(red, green, blue, depth):
   cv2.imwrite('original/green.png',green)
   cv2.imwrite('original/blue.png',blue)
   cv2.imwrite('original/depth.png',depth)
+  depth2 = cv2.bitwise_not(depth)
+  cv2.imwrite('original/depth_inv.png',depth2)
+  #ret, depth2 = cv2.threshold(depth2,180,255,cv2.THRESH_TRUNC)
+  ret, depth2 = cv2.threshold(depth2,165,255,cv2.THRESH_TOZERO)
+  cv2.imwrite('original/depth_filt.png',depth2)
+  
+  height, width = depth2.shape
+  lowest = 255
+  for i in range(0, height):
+      for j in range(0, width):
+         if depth2[i,j] < lowest and depth2[i,j] != 0:
+            lowest = depth2[i,j]
 
+  for i in range(0, height):
+      for j in range(0, width):
+          if depth2[i,j] != 0:
+            depth2[i,j] = depth2[i,j] - lowest
+                  
+  cv2.imwrite('original/depth_filt_final.png',depth2)
+  
+  
+  
   #MIDDLE_STRIPE_SIZE = 20
   #red = red[(IMAGE_SIZE/2 - IMAGE_SIZE/2):(IMAGE_SIZE/2 + IMAGE_SIZE/2),:]
   #cv2.imwrite('original/inputred.png',red)
@@ -162,12 +188,11 @@ def filtering(red, green, blue, depth):
   #blue = blue[(IMAGE_SIZE/2 - IMAGE_SIZE/2):(IMAGE_SIZE/2 + IMAGE_SIZE/2),:]
   #cv2.imwrite('original/inputblue.png',blue)
 
-  for x in range(0, 4):
+  for x in range(0, 5):
     if x == 0:
       color = red
       textcolor = "red"
       folder = "red/"
-      
     if x == 1:
       color = green
       textcolor = "green"
@@ -180,6 +205,11 @@ def filtering(red, green, blue, depth):
       color = depth
       textcolor = "depth"
       folder = "depth/"
+    if x == 4:
+      color = original
+      textcolor = "merged"
+      folder = "merged/"
+          
 
     ret,thresh1 = cv2.threshold(color,120,255,cv2.THRESH_BINARY)
     ret,thresh2 = cv2.threshold(color,130,255,cv2.THRESH_BINARY)
@@ -212,13 +242,23 @@ cv2.THRESH_BINARY,5,2)
     cv2.imwrite(folder + 'tresh11.png', th6)
 
 def merging():
-  img1 = cv2.imread('depth/tresh7.png') 
-  img1 = cv2.bitwise_not(img1) 
-  img2 = cv2.imread('blue/tresh1.png')
-  result = cv2.add(img1,img2)
-  cv2.imwrite('result.png',result)
-  cv2.imwrite('depth.png',img1)
-  cv2.imwrite('color.png',img2)
+#==============================================================================
+#   img1 = cv2.imread('depth/tresh7.png') 
+#   img1 = cv2.bitwise_not(img1)
+#   img2 = cv2.imread('blue/tresh1.png')
+#   result = cv2.add(img1,img2)
+#   cv2.imwrite('result.png',result)
+#   cv2.imwrite('depth.png',img1)
+#   cv2.imwrite('color.png',img2)
+#==============================================================================
+  img1 = cv2.imread('original/depth_filt_final.png')
+  img2 = cv2.imread('merged/tresh3.png')
+  result1 = cv2.add(img1,img2)
+  cv2.imwrite('result1.png',result1)
+  
+  img2 = cv2.imread('merged/tresh5.png')
+  result2 = cv2.add(img1,img2)
+  cv2.imwrite('result2.png',result2)
 
 def main():
     red, green, blue, depth = initgame()

@@ -59,16 +59,16 @@ game.set_screen_resolution(ScreenResolution.RES_640X480)
 game.set_screen_format(ScreenFormat.CRCGCB)
 
 # Sets other rendering options
-game.set_render_hud(False)
-game.set_render_crosshair(False)
-game.set_render_weapon(False)
-game.set_render_decals(False)
-game.set_render_particles(False)
+  game.set_render_hud(False)
+  game.set_render_crosshair(False)
+  game.set_render_weapon(True)
+  game.set_render_decals(False)
+  game.set_render_particles(False)
 
 # Adds buttons that will be allowed. 
-game.add_available_button(Button.MOVE_LEFT)
-game.add_available_button(Button.MOVE_RIGHT)
-game.add_available_button(Button.ATTACK)
+  game.add_available_button(Button.TURN_LEFT)
+  game.add_available_button(Button.TURN_RIGHT)
+  game.add_available_button(Button.MOVE_FORWARD)
 
 # Adds game variables that will be included in state.
 game.add_available_game_variable(GameVariable.AMMO2)
@@ -99,9 +99,9 @@ FILTER_ALL = False
 # Define some actions. Each list entry corresponds to declared buttons:
 # MOVE_LEFT, MOVE_RIGHT, ATTACK
 # 5 more combinations are naturally possible but only 3 are included for transparency when watching.	
-actions = [[True,False,False],[False,True,False],[False,False,True]]
-game.init()
-episodes = 1
+  actions = [[True,False,False],[False,True,False],[False,False,True],[True,False,True],[False,True,True]]
+  game.init()
+  episodes = 80
 
 game.new_episode()
 game_state = game.get_state()
