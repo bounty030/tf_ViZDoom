@@ -6,11 +6,14 @@ Created on Wed Jun 15 19:25:21 2016
 """
 
 import math
+import cv2
+import numpy as np
+from matplotlib import pyplot as plt
 
-DIM_X = 80
-DIM_Y = 20
+DIM_X = 200
+DIM_Y = 200
 
-KERNEL1 = 4
+KERNEL1 = 3
 KERNEL2 = 3
 KERNEL3 = 2
 
@@ -51,6 +54,26 @@ def main():
     
     dim3x, dim3y = post_kernel(dim2x, dim2y, STRIDE3)
     print "2. layer size: ", dim3x, "/", dim3y
+    
+    # example kernel
+    img = cv2.imread('image.png')
+    
+    # define kernel here!
+    kernel = np.zeros((KERNEL1,KERNEL1))
+    kernel[0,0] = 1
+    kernel[KERNEL1-1,0] = -1
+    kernel[0,KERNEL1-1] = -1    
+    kernel[KERNEL1-1,KERNEL1-1] = 1
+    
+    # convolution
+    dst = cv2.filter2D(img,-1,kernel)
+    
+    #plot
+    plt.subplot(121),plt.imshow(img),plt.title('Original')
+    plt.xticks([]), plt.yticks([])
+    plt.subplot(122),plt.imshow(dst),plt.title('Edge')
+    plt.xticks([]), plt.yticks([])
+    plt.show()
     
 if __name__ == "__main__":
     main()
