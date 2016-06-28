@@ -65,7 +65,7 @@ def initgame():
     game.add_available_game_variable(GameVariable.AMMO2)
 
 # Causes episodes to finish after 200 tics (actions)
-    game.set_episode_timeout(200)
+    #game.set_episode_timeout(200)
 
 # Makes episodes start after 10 tics (~after raising the weapon)
     game.set_episode_start_time(10)
@@ -77,7 +77,7 @@ def initgame():
     game.set_sound_enabled(False)
 
 # Sets the livin reward (for each move) to -1
-    game.set_living_reward(-1)
+    game.set_living_reward(1)
 
 # Sets ViZDoom mode (PLAYER, ASYNC_PLAYER, SPECTATOR, ASYNC_SPECTATOR, PLAYER mode is default)
     game.set_mode(Mode.PLAYER)

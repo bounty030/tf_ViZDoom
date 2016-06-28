@@ -32,17 +32,20 @@ def post_pool(dim_x, dim_y):
     
     return pool_x, pool_y
     
-def image_postprocessing(img, t_size_x, t_size_y, bool_filter):
+def image_postprocessing(img, t_size_y, t_size_x, bool_filter):
     
-    res = cv2.resize(img, (t_size_x, t_size_y))
+    res = cv2.resize(img, (t_size_y, t_size_x))
     ret,res = cv2.threshold(res,130,255,cv2.THRESH_BINARY)
     
     return res
     
 # add image and depth image
-def image_postprocessing_depth(gray, depth, t_size_x, t_size_y):
-    gray = cv2.resize(gray, (t_size_x, t_size_y))
-    depth = cv2.resize(depth, (t_size_x, t_size_y))
+def image_postprocessing_depth(gray, depth, t_size_y, t_size_x):
+    gray = cv2.resize(gray, (t_size_y, t_size_x))
+    depth = cv2.resize(depth, (t_size_y, t_size_x))
+    gray = gray[t_size_y/2-1:-1,:]
+    depth = depth[t_size_y/2-1:-1,:]
+    
     #cv2.imwrite('gray.png', gray)
     #cv2.imwrite('depth.png', depth)
     
