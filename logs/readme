@@ -1,0 +1,2 @@
+logs werden hier alle 300k Schritte abgespeichert, die anzahl der Schritte lässt sich in
+der Datei main_dq.py Zeile 178 ändern
