@@ -52,7 +52,7 @@ def initgame():
 # Sets other rendering options
     game.set_render_hud(False)
     game.set_render_crosshair(False)
-    game.set_render_weapon(True)
+    game.set_render_weapon(False)
     game.set_render_decals(False)
     game.set_render_particles(False)
 
@@ -71,7 +71,7 @@ def initgame():
     game.set_episode_start_time(10)
 
 # Makes the window appear (turned on by default)
-    game.set_window_visible(True)
+    game.set_window_visible(False)
 
 # Turns on the sound. (turned off by default)
     game.set_sound_enabled(False)
