@@ -68,7 +68,7 @@ def initgame():
     #game.set_episode_timeout(200)
 
 # Makes episodes start after 10 tics (~after raising the weapon)
-    game.set_episode_start_time(10)
+    #game.set_episode_start_time(10)
 
 # Makes the window appear (turned on by default)
     game.set_window_visible(True)
@@ -77,7 +77,7 @@ def initgame():
     game.set_sound_enabled(False)
 
 # Sets the livin reward (for each move) to -1
-    game.set_living_reward(1)
+    #game.set_living_reward(1)
 
 # Sets ViZDoom mode (PLAYER, ASYNC_PLAYER, SPECTATOR, ASYNC_SPECTATOR, PLAYER mode is default)
     game.set_mode(Mode.PLAYER)

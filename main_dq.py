@@ -22,8 +22,8 @@ STRIDE2 = 2
 STRIDE3 = 1
 
 GAMMA = 0.95 # decay rate of past observations
-OBSERVE = 100 # timesteps to observe before training
-EXPLORE = 100000 # frames over which to anneal epsilon
+OBSERVE = 100000 # timesteps to observe before training
+EXPLORE = 1000000 # frames over which to anneal epsilon
 FINAL_EPSILON = 0.05 # final value of epsilon
 INITIAL_EPSILON = 1.0 # starting value of epsilon
 REPLAY_MEMORY = 590000 # number of previous transitions to remember
@@ -32,7 +32,7 @@ K = 1 # only select an action every Kth frame, repeat prev for others
 STACK = 1 # number of images stacked to a state
 GAME = "Doom"
 
-def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, feedback):
+def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, with_depth, feedback):
 #==============================================================================
 #
 # variables:
@@ -69,13 +69,16 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, feedback):
     gray = nc.getGray(game_state)
     depth = game_state.image_buffer[3,:,:]
     
-    x_t = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X)
+    if with_depth:
+        x_t = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X)
+    else:
+        x_t = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X)
     
     # stack images
     s_t = nc.create_state(x_t, STACK)
         
     # saver for the weights
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(max_to_keep=100)
     # start session
     sess.run(tf.initialize_all_variables())
     
@@ -95,7 +98,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, feedback):
     print("Observing for", OBSERVE, "turns, calibrating afterwards")
     
     while "pigs" != "fly":
-        print('t:',t)
+        #print('t:',t)
         # get the Q-values of every action for the current state
         readout_t = readout.eval(feed_dict = {s : [s_t]})[0]
         # the zero makes an array out of the returend matrix (3,1)
@@ -119,6 +122,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, feedback):
             
             # run the selected action and observe next state and reward
             r_t = game.make_action(a_t)
+            #print("reward:", r_t)
             terminal = game.is_episode_finished()
             
             # new: restart the game if it terminated?
@@ -131,7 +135,11 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, feedback):
             #x_t1 = nc.image_postprocessing(x_t1, IMAGE_SIZE_X, IMAGE_SIZE_Y, True)
             gray = nc.getGray(game_state)
             depth = game_state.image_buffer[3,:,:]
-            x_t1 = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X)
+            
+            if with_depth:
+                x_t1 = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X)
+            else:
+                x_t1 = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X)
             
             #stack image with the last three images from the old state to create new state
             s_t1 = nc.update_state(s_t, x_t1)
@@ -181,7 +189,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, feedback):
                 nc.store_img(x_t1)
         
         # save progress every 10000 iterations
-        if t % 100000 == 0:
+        if t % 300000 == 0:
             saver.save(sess, 'logs/' + GAME + '-dqn', global_step = t)
             print("Saved weights after", t, "steps")
             
@@ -200,7 +208,7 @@ def main():
     actions, num_actions, game = initgame()
     sess = tf.InteractiveSession()
     s, readout, h_fc1 = createNetwork(num_actions, STACK, IMAGE_SIZE_Y/2, IMAGE_SIZE_X, KERNEL1, STRIDE1, KERNEL2, STRIDE2, KERNEL3, STRIDE3)
-    trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, True)
+    trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, True, True)
     
 if __name__ == "__main__":
     main()
