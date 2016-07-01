@@ -32,12 +32,13 @@ def post_pool(dim_x, dim_y):
     
     return pool_x, pool_y
     
-def image_postprocessing(img, t_size_y, t_size_x, bool_filter):
+def image_postprocessing(img, t_size_y, t_size_x):
+    img = cv2.resize(img, (t_size_y, t_size_x))
+    img = img[t_size_y/2-1:-1,:]
     
-    res = cv2.resize(img, (t_size_y, t_size_x))
-    ret,res = cv2.threshold(res,130,255,cv2.THRESH_BINARY)
+    ret,img = cv2.threshold(img,160,255,cv2.THRESH_BINARY)
     
-    return res
+    return img
     
 # add image and depth image
 def image_postprocessing_depth(gray, depth, t_size_y, t_size_x):
@@ -59,18 +60,24 @@ def image_postprocessing_depth(gray, depth, t_size_y, t_size_x):
     ret, depth = cv2.threshold(depth,165,255,cv2.THRESH_TOZERO)    
     
     height, width = depth.shape
-    lowest = 255
+    #lowest = 255
     # find the lowest non-zero value
-    for i in range(0, height):
-        for j in range(0, width):
-            if depth[i,j] < lowest and depth[i,j] != 0:
-                lowest = depth[i,j]
+    #for i in range(0, height):
+    #    for j in range(0, width):
+    #        if depth[i,j] < lowest and depth[i,j] != 0:
+    #            lowest = depth[i,j]
+                
+    #print(lowest)
+    minval = np.min(depth[np.nonzero(depth)])
+    #print(minval)
+    
+    depth[np.nonzero(depth)] -= minval
 
     # subtract the lowest value from all non-zero values
-    for i in range(0, height):
-        for j in range(0, width):
-            if depth[i,j] != 0:
-                depth[i,j] = depth[i,j] - lowest
+    #for i in range(0, height):
+    #    for j in range(0, width):
+    #        if depth[i,j] != 0:
+    #            depth[i,j] = depth[i,j] - minval
                 
     #cv2.imwrite('depth_flt.png', depth)
     
