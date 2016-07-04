@@ -8,12 +8,15 @@ import tensorflow as tf
 import numpy as np
 from collections import deque
 import nn_calc as nc
+import math
+import sys
+import os
 
 
-IMAGE_SIZE_X = 80 # resolution of the image for the network
-IMAGE_SIZE_Y = 80
+IMAGE_SIZE_X = 120 # resolution of the image for the network
+IMAGE_SIZE_Y = 120
 
-KERNEL1 = 4
+KERNEL1 = 5
 KERNEL2 = 3
 KERNEL3 = 2
 
@@ -22,19 +25,19 @@ STRIDE2 = 2
 STRIDE3 = 1
 
 GAMMA = 0.95 # decay rate of past observations
-OBSERVE = 1000 # timesteps to observe before training
-EXPLORE = 1 # frames over which to anneal epsilon
+OBSERVE = 100 # timesteps to observe before training
+#EXPLORE = 10000000 # frames over which to anneal epsilon
 FINAL_EPSILON = 0.05 # final value of epsilon
 INITIAL_EPSILON = 1.0 # starting value of epsilon
 REPLAY_MEMORY = 590000 # number of previous transitions to remember
 BATCH = 32 # size of minibatch
-K = 1 # only select an action every Kth frame, repeat prev for others
-STACK = 1 # number of images stacked to a state
+#K = 1 # only select an action every Kth frame, repeat prev for others
+#STACK = 1 # number of images stacked to a state
 GAME = "Doom"
+#END = 5 * math.pow(10,6)
+END = 100
 
-
-
-def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
+def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, anneal_epsilon, with_depth, feedback):
 #==============================================================================
 #
 # variables:
@@ -47,6 +50,10 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
 # sess      tensorflow-session
 #  
 #==============================================================================
+
+    store_path = "logs_stack" + str(stack) + "_frame_action" + str(frame_action) + "_annealing" + str(anneal_epsilon) + "_withDepth" + str(with_depth)
+    if not os.path.exists(store_path):
+        os.makedirs(store_path)
     
     #tensorflow variable for the actions
     a = tf.placeholder("float", [None, num_actions])
@@ -67,22 +74,25 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
     # store the previous observations in replay memory
     D = deque()
     
-    # get first image
-    # index zero, because buffer is of form (n,y,x)
-    # n -> color? 
-    x_t = game_state.image_buffer[0,:,:]
-    x_t = nc.image_postprocessing(x_t, IMAGE_SIZE_X, IMAGE_SIZE_Y, True)
+    # create first image
+    gray = nc.getGray(game_state)
+    
+    if with_depth:
+        depth = game_state.image_buffer[3,:,:]
+        x_t = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X)
+    else:
+        x_t = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X)
     
     # stack images
-    s_t = nc.create_state(x_t, STACK)
+    s_t = nc.create_state(x_t, stack)
         
     # saver for the weights
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(max_to_keep=100)
     # start session
     sess.run(tf.initialize_all_variables())
     
     # saving and loading weights
-    checkpoint = tf.train.get_checkpoint_state("logs")
+    checkpoint = tf.train.get_checkpoint_state(store_path)
     if checkpoint and checkpoint.model_checkpoint_path:
         saver.restore(sess, checkpoint.model_checkpoint_path)
         print("Successfully loaded:", checkpoint.model_checkpoint_path)
@@ -94,9 +104,10 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
     t = 0
 
     
-    print("Observing for", OBSERVE, "turns, calibrating afterwards")
+    print("************************* Running *************************")
     
     while "pigs" != "fly":
+        #print('t:',t)
         # get the Q-values of every action for the current state
         readout_t = readout.eval(feed_dict = {s : [s_t]})[0]
         # the zero makes an array out of the returend matrix (3,1)
@@ -113,13 +124,16 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
             
         # scale down epsilon
         if epsilon > FINAL_EPSILON and t > OBSERVE:
-            epsilon -= (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORE
+            epsilon -= (INITIAL_EPSILON - FINAL_EPSILON) / anneal_epsilon
+            if epsilon <= FINAL_EPSILON:
+                print("Epsilon annealed to", epsilon, "%")
             
         # perform action and create new state (for K frames, train network after that)
-        for i in range(0, K):
+        for i in range(0, frame_action):
             
             # run the selected action and observe next state and reward
             r_t = game.make_action(a_t)
+            #print("reward:", r_t)
             terminal = game.is_episode_finished()
             
             # new: restart the game if it terminated?
@@ -128,8 +142,15 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
             
             #get the new game state and the new image
             game_state = game.get_state()
-            x_t1 = game_state.image_buffer[0,:,:]
-            x_t1 = nc.image_postprocessing(x_t1, IMAGE_SIZE_X, IMAGE_SIZE_Y, True)
+            #x_t1 = game_state.image_buffer[0,:,:]
+            #x_t1 = nc.image_postprocessing(x_t1, IMAGE_SIZE_X, IMAGE_SIZE_Y, True)
+            gray = nc.getGray(game_state)
+            
+            if with_depth:
+                depth = game_state.image_buffer[3,:,:]
+                x_t1 = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X)
+            else:
+                x_t1 = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X)
             
             #stack image with the last three images from the old state to create new state
             s_t1 = nc.update_state(s_t, x_t1)
@@ -140,6 +161,8 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
                 D.popleft()
                 
         if t > OBSERVE:
+            if t == OBSERVE+1:
+                print("Observing done")
             
             # sample a minibatch to train on
             minibatch = random.sample(D, BATCH)
@@ -174,11 +197,19 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
         s_t = s_t1
         t += 1
         
+        if feedback:
+            if t % 200 == 0:
+                nc.store_img(x_t1, t)
+        
         # save progress every 10000 iterations
-        if t % 100000 == 0:
-            saver.save(sess, 'logs/' + GAME + '-dqn', global_step = t)
+        if t % 50 == 0:
+            saver.save(sess, store_path + '/' + GAME + '-dqn', global_step = t)
             print("Saved weights after", t, "steps")
-            
+        
+        if t == END:
+            print("Network reached step", END, ", terminating")
+            print("************************* Done *************************")
+            break
 
          # print info
 #        state = ""
@@ -186,16 +217,41 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess):
 #            state = "observe"
 #        elif t > OBSERVE and t <= OBSERVE + EXPLORE:
 #            state = "explore"
-#        else:
+#        else:b
 #            state = "train"
-#        print("TIMESTEP", t, "/ STATE", state, "/ EPSILON", epsilon, "/ ACTION", action_index, "/ REWARD", r_t, "/ Q_MAX %e" % np.max(readout_t))
-
+#        print("TIMESTEP", t, "/ STATE", state, "/ EPSILON", epsilon, "/ ACTION", action_index, "/ REWARD", r_t, "/ Q_MAX %e" % np.max(readout_t))                
+    game.close()
       
 def main():
+#    stack = [1, 3, 5]
+#        frame_action = [1, 3]
+#        explore_anneal = [0.1, 1, 3] * math.pow(10,6)
+#        
+#        for i in range(0, len(stack)):
+#            for j in range(0, len(frame_action)):
+#                for k in range(0, len(explore_anneal)):        
+    stack = int(sys.argv[1])
+    frame_action = int(sys.argv[2])
+    explore_anneal = int(sys.argv[3])
+    with_depth = sys.argv[4]
+    if with_depth == "1":
+        with_depth = True
+    else:
+        with_depth = False
+    
+    print("Executing network with following parameters:")
+    print("Images stacked together:", stack)
+    print("Action will be taken every", frame_action, "frame")
+    print("Randomization factor will anneal to", FINAL_EPSILON, "% over", explore_anneal, "steps")
+    print("Adding depth image:", with_depth)  
+    print("Network will observe for", OBSERVE, "steps before calibrating")
+    print("Network will calibrate for a maximum of", END, "steps")
+    
     actions, num_actions, game = initgame()
     sess = tf.InteractiveSession()
-    s, readout, h_fc1 = createNetwork(num_actions, STACK, 20, IMAGE_SIZE_Y, KERNEL1, STRIDE1, KERNEL2, STRIDE2, KERNEL3, STRIDE3)
-    trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess)
+    s, readout, h_fc1 = createNetwork(num_actions, stack, IMAGE_SIZE_Y/2, IMAGE_SIZE_X, KERNEL1, STRIDE1, KERNEL2, STRIDE2, KERNEL3, STRIDE3)
+    trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, explore_anneal, with_depth, False)
+    #trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, 1, 1, 100, True, True)
     
 if __name__ == "__main__":
     main()
