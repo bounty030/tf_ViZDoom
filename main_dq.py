@@ -25,7 +25,7 @@ STRIDE2 = 2
 STRIDE3 = 1
 
 GAMMA = 0.95 # decay rate of past observations
-OBSERVE = 100 # timesteps to observe before training
+OBSERVE = 10000 # timesteps to observe before training
 #EXPLORE = 10000000 # frames over which to anneal epsilon
 FINAL_EPSILON = 0.05 # final value of epsilon
 INITIAL_EPSILON = 1.0 # starting value of epsilon
@@ -34,8 +34,9 @@ BATCH = 32 # size of minibatch
 #K = 1 # only select an action every Kth frame, repeat prev for others
 #STACK = 1 # number of images stacked to a state
 GAME = "Doom"
-#END = 5 * math.pow(10,6)
-END = 100
+END = int( 2 * math.pow(10,6) )
+#END = 100
+STORE = int( 0.5 * math.pow(10,6) )
 
 def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, anneal_epsilon, with_depth, feedback):
 #==============================================================================
@@ -202,7 +203,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
                 nc.store_img(x_t1, t)
         
         # save progress every 10000 iterations
-        if t % 50 == 0:
+        if t % STORE == 0:
             saver.save(sess, store_path + '/' + GAME + '-dqn', global_step = t)
             print("Saved weights after", t, "steps")
         
@@ -241,10 +242,11 @@ def main():
     
     print("Executing network with following parameters:")
     print("Images stacked together:", stack)
-    print("Action will be taken every", frame_action, "frame")
+    print("New action will be taken every", frame_action, "frame")
     print("Randomization factor will anneal to", FINAL_EPSILON, "% over", explore_anneal, "steps")
     print("Adding depth image:", with_depth)  
     print("Network will observe for", OBSERVE, "steps before calibrating")
+    print("Weights will be saved every", STORE, "steps")
     print("Network will calibrate for a maximum of", END, "steps")
     
     actions, num_actions, game = initgame()
