@@ -13,7 +13,7 @@
 #####################################################################
 from __future__ import print_function
 from vizdoom import *
-def initgame():
+def initgame(evaluate):
 # Create DoomGame instance. It will run the game and communicate with you.
     game = DoomGame()
 
@@ -71,7 +71,10 @@ def initgame():
     #game.set_episode_start_time(10)
 
 # Makes the window appear (turned on by default)
-    game.set_window_visible(True)
+    if evaluate:
+        game.set_window_visible(True)
+    else:
+        game.set_window_visible(False)
 
 # Turns on the sound. (turned off by default)
     game.set_sound_enabled(False)
