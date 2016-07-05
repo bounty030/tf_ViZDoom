@@ -35,10 +35,10 @@ BATCH = 32 # size of minibatch
 #STACK = 1 # number of images stacked to a state
 GAME = "Doom"
 END = int( 2 * math.pow(10,6) )
-#END = 600
+#END = 2000
 STORE = int( 0.5 * math.pow(10,6) )
 
-def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, anneal_epsilon, with_depth, feedback):
+def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, anneal_epsilon, with_depth, evaluate, feedback):
 #==============================================================================
 #
 # variables:
@@ -101,9 +101,20 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
         print("Could not find old network weights, starting from scratch")
         
     # define learning parameters
-    epsilon = INITIAL_EPSILON
+    if evaluate:
+        epsilon = FINAL_EPSILON
+        observe = 100
+        end = 2000
+    else:
+        observe = OBSERVE
+        epsilon = INITIAL_EPSILON
+        end = END
+        
     t = 0
 
+    if feedback:
+        imgcnt = 0
+        maximg = 10
     
     print("************************* Running *************************")
     
@@ -113,10 +124,13 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
         readout_t = readout.eval(feed_dict = {s : [s_t]})[0]
         # the zero makes an array out of the returend matrix (3,1)
         
+        if feedback:        
+            print("Q-values:", readout_t)        
+        
         # choose random action or best action (dependent on epsilon)
         a_t =  [0] * num_actions
         action_index = 0
-        if random.random() <= epsilon or t <= OBSERVE:
+        if random.random() <= epsilon or t <= observe:
             action_index = random.randrange(num_actions)
             a_t[random.randrange(num_actions)] = 1
         else:
@@ -161,8 +175,8 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             if len(D) > REPLAY_MEMORY:
                 D.popleft()
                 
-        if t > OBSERVE:
-            if t == OBSERVE+1:
+        if t > observe:
+            if t == observe+1:
                 print("Observing done")
             
             # sample a minibatch to train on
@@ -199,15 +213,16 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
         t += 1
         
         if feedback:
-            if t % 200 == 0:
+            if t % 10 == 0 and imgcnt < maximg:
                 nc.store_img(x_t1, t)
+                imgcnt += 1
         
         # save progress every 10000 iterations
         if t % STORE == 0:
             saver.save(sess, store_path + '/' + GAME + '-dqn', global_step = t)
             print("Saved weights after", t, "steps")
         
-        if t == END:
+        if t == end:
             reward = game.get_total_reward()
             reward = reward/t  
             reward_path = store_path + "/reward.txt"
@@ -215,7 +230,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             reward_file.write(str(reward))
             reward_file.close()            
             
-            print("Network reached step", END, ", terminating")
+            print("Network reached step", end, ", terminating")
             print("Reward per step:", reward)
             print("************************* Done *************************")
             break
@@ -238,7 +253,12 @@ def main():
 #        
 #        for i in range(0, len(stack)):
 #            for j in range(0, len(frame_action)):
-#                for k in range(0, len(explore_anneal)):        
+#                for k in range(0, len(explore_anneal)):  
+
+    EVALUATE = True
+    FEEDBACK = True
+    
+      
     stack = int(sys.argv[1])
     frame_action = int(sys.argv[2])
     explore_anneal = int(sys.argv[3])
@@ -247,21 +267,24 @@ def main():
         with_depth = True
     else:
         with_depth = False
-    
-    print("Executing network with following parameters:")
-    print("Images stacked together:", stack)
-    print("New action will be taken every", frame_action, "frame")
-    print("Randomization factor will anneal to", FINAL_EPSILON, "% over", explore_anneal, "steps")
-    print("Adding depth image:", with_depth)  
-    print("Network will observe for", OBSERVE, "steps before calibrating")
-    print("Weights will be saved every", STORE, "steps")
-    print("Network will calibrate for a maximum of", END, "steps")
+        
+    if EVALUATE:
+        print("Testing results from network with following parameters:")
+        print("Stack:", stack, "Frame/Action:", frame_action, "Depth:", with_depth)
+    else:
+        print("Executing network with following parameters:")
+        print("Images stacked together:", stack)
+        print("New action will be taken every", frame_action, "frame")
+        print("Randomization factor will anneal to", FINAL_EPSILON, "% over", explore_anneal, "steps")
+        print("Adding depth image:", with_depth)  
+        print("Network will observe for", OBSERVE, "steps before calibrating")
+        print("Weights will be saved every", STORE, "steps")
+        print("Network will calibrate for a maximum of", END, "steps")
     
     actions, num_actions, game = initgame()
     sess = tf.InteractiveSession()
     s, readout, h_fc1 = createNetwork(num_actions, stack, IMAGE_SIZE_Y/2, IMAGE_SIZE_X, KERNEL1, STRIDE1, KERNEL2, STRIDE2, KERNEL3, STRIDE3)
-    trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, explore_anneal, with_depth, False)
-    #trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, 1, 1, 100, True, True)
+    trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, explore_anneal, with_depth, EVALUATE, FEEDBACK)
     
 if __name__ == "__main__":
     main()
