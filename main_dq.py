@@ -25,7 +25,7 @@ STRIDE2 = 2
 STRIDE3 = 1
 
 GAMMA = 0.95 # decay rate of past observations
-OBSERVE = 10000 # timesteps to observe before training
+OBSERVE = 100 # timesteps to observe before training
 #EXPLORE = 10000000 # frames over which to anneal epsilon
 FINAL_EPSILON = 0.05 # final value of epsilon
 INITIAL_EPSILON = 1.0 # starting value of epsilon
@@ -34,8 +34,8 @@ BATCH = 32 # size of minibatch
 #K = 1 # only select an action every Kth frame, repeat prev for others
 #STACK = 1 # number of images stacked to a state
 GAME = "Doom"
-END = int( 2 * math.pow(10,6) )
-#END = 100
+#END = int( 2 * math.pow(10,6) )
+END = 600
 STORE = int( 0.5 * math.pow(10,6) )
 
 def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, anneal_epsilon, with_depth, feedback):
@@ -208,7 +208,15 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             print("Saved weights after", t, "steps")
         
         if t == END:
+            reward = game.get_total_reward()
+            reward = reward/t  
+            reward_path = store_path + "/reward.txt"
+            reward_file = open(reward_path, 'w')
+            reward_file.write(str(reward))
+            reward_file.close()            
+            
             print("Network reached step", END, ", terminating")
+            print("Reward per step:", reward)
             print("************************* Done *************************")
             break
 
