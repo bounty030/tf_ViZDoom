@@ -247,16 +247,9 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
     game.close()
       
 def main():
-#    stack = [1, 3, 5]
-#        frame_action = [1, 3]
-#        explore_anneal = [0.1, 1, 3] * math.pow(10,6)
-#        
-#        for i in range(0, len(stack)):
-#            for j in range(0, len(frame_action)):
-#                for k in range(0, len(explore_anneal)):  
 
-    EVALUATE = True
-    FEEDBACK = True
+    EVALUATE = False
+    FEEDBACK = False
     
       
     stack = int(sys.argv[1])
@@ -281,7 +274,7 @@ def main():
         print("Weights will be saved every", STORE, "steps")
         print("Network will calibrate for a maximum of", END, "steps")
     
-    actions, num_actions, game = initgame()
+    actions, num_actions, game = initgame(EVALUATE)
     sess = tf.InteractiveSession()
     s, readout, h_fc1 = createNetwork(num_actions, stack, IMAGE_SIZE_Y/2, IMAGE_SIZE_X, KERNEL1, STRIDE1, KERNEL2, STRIDE2, KERNEL3, STRIDE3)
     trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, explore_anneal, with_depth, EVALUATE, FEEDBACK)
