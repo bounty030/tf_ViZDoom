@@ -11,6 +11,7 @@ import nn_calc as nc
 import math
 import sys
 import os
+import time
 
 
 IMAGE_SIZE_X = 120 # resolution of the image for the network
@@ -36,7 +37,8 @@ BATCH = 32 # size of minibatch
 GAME = "Doom"
 END = int( 2 * math.pow(10,6) )
 #END = 2000
-STORE = int( 0.5 * math.pow(10,6) )
+#STORE = int( 0.5 * math.pow(10,6) )
+STORE = 100
 
 def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, anneal_epsilon, with_depth, evaluate, feedback):
 #==============================================================================
@@ -52,9 +54,16 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
 #  
 #==============================================================================
 
-    store_path = "logs_stack" + str(stack) + "_frame_action" + str(frame_action) + "_annealing" + str(anneal_epsilon) + "_withDepth" + str(with_depth)
+    store_path = "logs_stack" + str(stack) + "_frame_action" + str(frame_action) + "_annealing" + str(anneal_epsilon) + "_withDepth" + str(with_depth)    
     if not os.path.exists(store_path):
-        os.makedirs(store_path)
+        os.makedirs(store_path)        
+    reward_path = store_path + "/reward.txt"
+
+    if feedback:
+        feedback_path = "feedback"
+        if not os.path.exists(feedback_path):
+            os.makedirs(feedback_path)
+        qfile_path = feedback_path + "/qfile.txt"
     
     #tensorflow variable for the actions
     a = tf.placeholder("float", [None, num_actions])
@@ -104,7 +113,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
     if evaluate:
         epsilon = FINAL_EPSILON
         observe = 100
-        end = 2000
+        end = 500
     else:
         observe = OBSERVE
         epsilon = INITIAL_EPSILON
@@ -115,16 +124,19 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
     if feedback:
         imgcnt = 0
         maximg = 10
+        
+    start_time = time.time()
     
     print("************************* Running *************************")
     
     while "pigs" != "fly":
-        #print('t:',t)
+        
         # get the Q-values of every action for the current state
         readout_t = readout.eval(feed_dict = {s : [s_t]})[0]
         # the zero makes an array out of the returend matrix (3,1)
         
-        if feedback:        
+        if feedback:
+            print('t:',t)
             print("Q-values:", readout_t)        
         
         # choose random action or best action (dependent on epsilon)
@@ -213,24 +225,40 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
         t += 1
         
         if feedback:
+            #todo store q-value and image every x steps
             if t % 10 == 0 and imgcnt < maximg:
-                nc.store_img(x_t1, t)
+                nc.store_img(x_t1, t, feedback_path)
                 imgcnt += 1
+                
+                #and store the corresponding q-values
+                qfile = open(qfile_path, 'a')
+                qfile.write(str(t) + ": Q-Values:" + str(readout_t) + "\n")
+                qfile.close() 
         
         # save progress every 10000 iterations
         if t % STORE == 0:
             saver.save(sess, store_path + '/' + GAME + '-dqn', global_step = t)
+            
+            reward = game.get_total_reward() / t
+            current_time = time.time() - start_time
+            
+            reward_file = open(reward_path, 'a')
+            reward_file.write(str(t) + ": Reward: " + str(reward) + ", Time: " + str(current_time) + "\n")
+            reward_file.close() 
+            
+            
+            
             print("Saved weights after", t, "steps")
         
         if t == end:
-            reward = game.get_total_reward()
-            reward = reward/t  
-            reward_path = store_path + "/reward.txt"
-            reward_file = open(reward_path, 'w')
-            reward_file.write(str(reward))
+            #todo reward every x steps!
+            #reward = game.get_total_reward() / t
+            
+            reward_file = open(reward_path, 'a')
+            reward_file.write("-- Network terminated --\n")
             reward_file.close()            
             
-            print("Network reached step", end, ", terminating")
+            print("Network reached final step", end)
             print("Reward per step:", reward)
             print("************************* Done *************************")
             break
@@ -248,8 +276,8 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
       
 def main():
 
-    EVALUATE = False
-    FEEDBACK = False
+    EVALUATE = True
+    FEEDBACK = True
     
       
     stack = int(sys.argv[1])
