@@ -8,6 +8,7 @@ Created on Mon Jun  6 12:38:13 2016
 import math
 import cv2
 import numpy as np
+import os
 
 def post_kernel(dim_x, dim_y, stride):
     
@@ -114,4 +115,8 @@ def store_img(img):
 def store_img(img, add):
     name  = 'image_' + str(add) + '.png'
     cv2.imwrite(name, img)
+    
+def store_img(img, add, path):
+    name  = 'image_' + str(add) + '.png'
+    cv2.imwrite(os.path.join(path, name), img)
     
