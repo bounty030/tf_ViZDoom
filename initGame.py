@@ -62,8 +62,9 @@ def initgame(evaluate):
     game.add_available_button(Button.MOVE_FORWARD)
 
 # Adds game variables that will be included in state.
-    game.add_available_game_variable(GameVariable.AMMO2)
-
+#    game.add_available_game_variable(GameVariable.AMMO2)
+    game.add_available_game_variable(GameVariable.HEALTH)
+    game.add_available_game_variable(GameVariable.DEAD)
 # Causes episodes to finish after 200 tics (actions)
     #game.set_episode_timeout(200)
 
@@ -80,8 +81,8 @@ def initgame(evaluate):
     game.set_sound_enabled(False)
 
 # Sets the livin reward (for each move) to -1
-    #game.set_living_reward(1)
-
+    #game.set_living_reward(-1)
+    #game.set_death_penalty(-100)
 # Sets ViZDoom mode (PLAYER, ASYNC_PLAYER, SPECTATOR, ASYNC_SPECTATOR, PLAYER mode is default)
     game.set_mode(Mode.PLAYER)
 
@@ -92,6 +93,9 @@ def initgame(evaluate):
 # MOVE_LEFT, MOVE_RIGHT, MOVE_FORWARD
 # 5 more combinations are naturally possible but only 3 are included for transparency when watching.	
     #actions = [[True,False,False],[False,True,False],[False,False,True]]
-    actions = [[1,0,0],[0,1,0],[0,0,1],[1,0,1],[0,1,1]]
+    #actions = [[1,0,0],[0,1,0],[0,0,1],[1,0,1],[0,1,1]]
+    actions = [[1,0,1],[0,1,1],[0,0,1]]
+    
+
     num_actions = len(actions)
     return actions, num_actions, game
