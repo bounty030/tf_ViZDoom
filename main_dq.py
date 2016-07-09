@@ -26,7 +26,7 @@ STRIDE2 = 2
 STRIDE3 = 1
 
 GAMMA = 0.95 # decay rate of past observations
-OBSERVE = 10000 # timesteps to observe before training
+OBSERVE = 590000 # timesteps to observe before training
 #EXPLORE = 10000000 # frames over which to anneal epsilon
 FINAL_EPSILON = 0.05 # final value of epsilon
 INITIAL_EPSILON = 1.0 # starting value of epsilon
@@ -113,7 +113,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
     if evaluate:
         epsilon = FINAL_EPSILON
         observe = 100
-        end = 500
+        end = 1000
     else:
         observe = OBSERVE
         epsilon = INITIAL_EPSILON
@@ -128,8 +128,21 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
     start_time = time.time()
     
     print("************************* Running *************************")
-    
-    while "pigs" != "fly":
+
+    #init old_health
+    old_health = 0
+
+    while "pigs" != "fly":        
+
+	#get health and death_counter from game_state
+	new_health = game_state.game_variables[0] 
+	death_counter = game_state.game_variables[1] 
+	
+	#calculate difference between new_health and old_health
+	diff_health = float(new_health - old_health) #has to be conv. to float for game.set_living_reward()
+
+	# sets living reward	
+        game.set_living_reward(diff_health +1)
         
         # get the Q-values of every action for the current state
         readout_t = readout.eval(feed_dict = {s : [s_t]})[0]
@@ -137,8 +150,17 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
         
         if feedback:
             print('t:',t)
-            print("Q-values:", readout_t)        
+            print("Q-values:", readout_t)  
+            print("Reward:", game.get_total_reward())
+	    print("Last reward:", game.get_last_reward())
+	    print("Death counter:", death_counter)
+	    print("New Health:", new_health)
+	    print("Old Health:", old_health)
+	    print("Diff Health:", diff_health)      
         
+	#set new_health to old_health
+	old_health = new_health
+
         # choose random action or best action (dependent on epsilon)
         a_t =  [0] * num_actions
         action_index = 0
@@ -157,7 +179,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             
         # perform action and create new state (for K frames, train network after that)
         for i in range(0, frame_action):
-            
+           
             # run the selected action and observe next state and reward
             r_t = game.make_action(a_t)
             #print("reward:", r_t)
@@ -227,7 +249,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
         if feedback:
             #todo store q-value and image every x steps
             if t % 10 == 0 and imgcnt < maximg:
-                nc.store_img(x_t1, t, feedback_path)
+                #nc.store_img(x_t1, t, feedback_path)
                 imgcnt += 1
                 
                 #and store the corresponding q-values
@@ -274,11 +296,11 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
 #        print("TIMESTEP", t, "/ STATE", state, "/ EPSILON", epsilon, "/ ACTION", action_index, "/ REWARD", r_t, "/ Q_MAX %e" % np.max(readout_t))                
     game.close()
       
+
 def main():
 
     EVALUATE = True
     FEEDBACK = True
-    
       
     stack = int(sys.argv[1])
     frame_action = int(sys.argv[2])
