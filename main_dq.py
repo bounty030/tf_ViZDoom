@@ -37,8 +37,7 @@ BATCH = 32 # size of minibatch
 GAME = "Doom"
 END = int( 2 * math.pow(10,6) )
 #END = 2000
-#STORE = int( 0.5 * math.pow(10,6) )
-STORE = 100
+STORE = int( 0.1 * math.pow(10,6) )
 
 # for feedback
 IMG_STORED_INTERVAL = 1
@@ -325,7 +324,7 @@ def main():
     
     # is this flag set, the game will store a lot of information in
     # additional files and on the console
-    FEEDBACK = True
+    FEEDBACK = False
       
     stack = int(sys.argv[1])
     frame_action = int(sys.argv[2])
