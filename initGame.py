@@ -81,8 +81,8 @@ def initgame(evaluate):
     game.set_sound_enabled(False)
 
 # Sets the livin reward (for each move) to -1
-    #game.set_living_reward(-1)
-    #game.set_death_penalty(-100)
+    game.set_living_reward(-1)
+    game.set_death_penalty(100)
 # Sets ViZDoom mode (PLAYER, ASYNC_PLAYER, SPECTATOR, ASYNC_SPECTATOR, PLAYER mode is default)
     game.set_mode(Mode.PLAYER)
 

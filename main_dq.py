@@ -44,7 +44,7 @@ IMG_STORED_INTERVAL = 1
 MAX_IMG_STORED = 100
 OBSERVE_EVALUATE = 100
 END_EVALUATE = 500
-SLEEPTIME = 0
+SLEEPTIME = 0.0
 
 def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, anneal_epsilon, with_depth, evaluate, feedback):
 #==============================================================================
@@ -153,9 +153,15 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
     	
         # calculate difference between new_health and old_health
         diff_health = float(new_health - old_health) # has to be conv. to float for game.set_living_reward()
+        game.set_living_reward(-1)
     
-        # sets living reward	
-        game.set_living_reward(diff_health)
+        # sets living reward (negative if health lost or the chracter respawned)
+#==============================================================================
+#         if diff_health <= 0 or diff_health > 50:
+#             game.set_living_reward(-1)
+#         elif diff_health > 0:
+#             game.set_living_reward(diff_health)
+#==============================================================================
             
         # get the Q-values of every action for the current state
         readout_t = readout.eval(feed_dict = {s : [s_t]})[0]
@@ -163,7 +169,8 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             
         if feedback:
             print('t:',t)
-            print("Q-values:", readout_t)  
+            print("Q-values:", readout_t)
+            print("Terminal:", game.is_episode_finished())
             #print("Reward:", game.get_total_reward())
             #print("Last reward:", game.get_last_reward())
             print("Death counter:", death_counter)
@@ -195,6 +202,8 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
            
             # run the selected action and observe next state and reward
             r_t = game.make_action(a_t)
+            if diff_health > 0 and diff_health < 76:
+                r_t = 25.0
             
             # calculate reward per turn
             reward_all += r_t
@@ -320,11 +329,11 @@ def main():
 
     # is this flag set, the game will not store any weights and
     # will play for a few rounds
-    EVALUATE = False
+    EVALUATE = True
     
     # is this flag set, the game will store a lot of information in
     # additional files and on the console
-    FEEDBACK = False
+    FEEDBACK = True
       
     stack = int(sys.argv[1])
     frame_action = int(sys.argv[2])
