@@ -35,7 +35,7 @@ BATCH = 32 # size of minibatch
 #K = 1 # only select an action every Kth frame, repeat prev for others
 #STACK = 1 # number of images stacked to a state
 GAME = "Doom"
-END = int( 2 * math.pow(10,6) )
+END = int( 2.5 * math.pow(10,6) )
 #END = 2000
 STORE = int( 0.1 * math.pow(10,6) )
 
@@ -311,11 +311,11 @@ def main():
 
     # is this flag set, the game will not store any weights and
     # will play for a few rounds
-    EVALUATE = True
+    EVALUATE = False
     
     # is this flag set, the game will store a lot of information in
     # additional files and on the console
-    FEEDBACK = True
+    FEEDBACK = False
       
     stack = int(sys.argv[1])
     frame_action = int(sys.argv[2])
