@@ -173,7 +173,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             # run the selected action and observe next state and reward
             r_t = game.make_action(a_t)
             
-            # store if the episode terminated
+            # store whether the episode terminated
             terminal = game.is_episode_finished()
             
             # restart the game if it terminated
@@ -215,7 +215,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             else:
                 x_t1 = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X)
             
-            #add image ti the state
+            # add image to the state
             s_t1 = nc.update_state(s_t, x_t1)
             
             # store the transition in D
