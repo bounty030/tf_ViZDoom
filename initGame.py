@@ -64,7 +64,7 @@ def initgame(evaluate):
 # Adds game variables that will be included in state.
 #    game.add_available_game_variable(GameVariable.AMMO2)
     game.add_available_game_variable(GameVariable.HEALTH)
-    game.add_available_game_variable(GameVariable.DEAD)
+    game.add_available_game_variable(GameVariable.DEATHCOUNT)
 # Causes episodes to finish after 200 tics (actions)
     #game.set_episode_timeout(200)
 
