@@ -64,7 +64,7 @@ def initgame(evaluate):
 # Adds game variables that will be included in state.
 #    game.add_available_game_variable(GameVariable.AMMO2)
     game.add_available_game_variable(GameVariable.HEALTH)
-    game.add_available_game_variable(GameVariable.DEAD)
+    game.add_available_game_variable(GameVariable.DEATHCOUNT)
 # Causes episodes to finish after 200 tics (actions)
     #game.set_episode_timeout(200)
 
@@ -81,8 +81,8 @@ def initgame(evaluate):
     game.set_sound_enabled(False)
 
 # Sets the livin reward (for each move) to -1
-    #game.set_living_reward(-1)
-    #game.set_death_penalty(-100)
+    game.set_living_reward(-1)
+    game.set_death_penalty(100)
 # Sets ViZDoom mode (PLAYER, ASYNC_PLAYER, SPECTATOR, ASYNC_SPECTATOR, PLAYER mode is default)
     game.set_mode(Mode.PLAYER)
 

@@ -37,15 +37,14 @@ BATCH = 32 # size of minibatch
 GAME = "Doom"
 END = int( 2 * math.pow(10,6) )
 #END = 2000
-#STORE = int( 0.5 * math.pow(10,6) )
-STORE = 100
+STORE = int( 0.1 * math.pow(10,6) )
 
 # for feedback
 IMG_STORED_INTERVAL = 1
-MAX_IMG_STORED = 100
+MAX_IMG_STORED = 0
 OBSERVE_EVALUATE = 100
 END_EVALUATE = 500
-SLEEPTIME = 0
+SLEEPTIME = 0.3
 
 def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, anneal_epsilon, with_depth, evaluate, feedback):
 #==============================================================================
@@ -148,33 +147,10 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
 
     while "pigs" != "fly":        
 
-        #get health and death_counter from game_state
-        new_health = game_state.game_variables[0] 
-        death_counter = game_state.game_variables[1] 
-    	
-        # calculate difference between new_health and old_health
-        diff_health = float(new_health - old_health) # has to be conv. to float for game.set_living_reward()
-    
-        # sets living reward	
-        game.set_living_reward(diff_health)
-            
         # get the Q-values of every action for the current state
         readout_t = readout.eval(feed_dict = {s : [s_t]})[0]
         # the zero makes an array out of the returend matrix (3,1)
-            
-        if feedback:
-            print('t:',t)
-            print("Q-values:", readout_t)  
-            #print("Reward:", game.get_total_reward())
-            #print("Last reward:", game.get_last_reward())
-            print("Death counter:", death_counter)
-            print("New Health:", new_health)
-            print("Old Health:", old_health)
-            print("Diff Health:", diff_health)      
-            
-        #set new_health to old_health
-        old_health = new_health
-
+        
         # choose random action or best action (dependent on epsilon)
         a_t =  [0] * num_actions
         action_index = 0
@@ -191,36 +167,55 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             if epsilon <= FINAL_EPSILON:
                 print("Epsilon annealed to", epsilon, "%")
             
-        # perform action and create new state (for K frames, train network after that)
+        # perform action and create new state (for K frames)
         for i in range(0, frame_action):
            
             # run the selected action and observe next state and reward
             r_t = game.make_action(a_t)
             
-            # calculate reward per turn
-            reward_all += r_t
-            reward_p_turn = reward_all / (t+1)
-            
-            #print("reward:", r_t)
+            # store if the episode terminated
             terminal = game.is_episode_finished()
             
-            # new: restart the game if it terminated?
+            # restart the game if it terminated
             if game.is_episode_finished():
                 game.new_episode()
-            
-            #get the new game state and the new image
+                
+            # get the new game state and the new image
             game_state = game.get_state()
-            #x_t1 = game_state.image_buffer[0,:,:]
-            #x_t1 = nc.image_postprocessing(x_t1, IMAGE_SIZE_X, IMAGE_SIZE_Y, True)
+            
+            #get health and death_counter from game_state
+            new_health = game_state.game_variables[0] 
+            death_counter = game_state.game_variables[1]
+            
+            # calculate new values
+            diff_health = float(new_health - old_health) # has to be conv. to float for game.set_living_reward()
+            if diff_health > 0 and not terminal: # no positive reward if player died (player respawned with new health)
+                r_t = 25.0
+            reward_all += r_t
+            reward_p_turn = reward_all / (t+1)
+
+            if feedback:
+                print('t:',t)
+                print("Q-values:", readout_t)
+                print("Death counter:", death_counter)
+                print("New Health:", new_health)
+                print("Old Health:", old_health)
+                print('Reward for this turn:',r_t)
+                print("Diff Health:", diff_health)
+                print("Terminal:", terminal)
+                print("Reward per step:", reward_p_turn)
+            
+            # get image
             gray = nc.getGray(game_state)
             
+            # add depth image if defined
             if with_depth:
                 depth = game_state.image_buffer[3,:,:]
                 x_t1 = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X)
             else:
                 x_t1 = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X)
             
-            #stack image with the last three images from the old state to create new state
+            #add image ti the state
             s_t1 = nc.update_state(s_t, x_t1)
             
             # store the transition in D
@@ -228,6 +223,10 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             if len(D) > REPLAY_MEMORY:
                 D.popleft()
                 
+            # update old values
+            old_health = new_health
+            
+        # after action(s) are executed start the training
         if t > observe:
             if t == observe+1:
                 print("Observing done")
@@ -265,15 +264,14 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
         s_t = s_t1
         t += 1
         
+        
         if feedback:
-            
-            print('Reward for this turn:',r_t)
             if SLEEPTIME >0:            
                 time.sleep(SLEEPTIME)
             
             #todo store q-value and image every x steps
             if t % IMG_STORED_INTERVAL == 0 and imgcnt < maximg:
-                #nc.store_img(x_t1, t, feedback_path)
+                nc.store_img(x_t1, t, feedback_path)
                 imgcnt += 1
                 
                 #and store the corresponding q-values
@@ -294,8 +292,9 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
                 
                 print("Saved weights after", t, "steps")
         
+        # end the program if final step reached
         if t == end:
-            #todo recalculate reward
+
             reward_file = open(reward_path, 'a')
             reward_file.write("-- Network terminated --\n")
             reward_file.close()            
@@ -304,16 +303,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             print("Reward per step:", reward_p_turn)
             print("************************* Done *************************")
             break
-
-         # print info
-#        state = ""
-#        if t <= OBSERVE:
-#            state = "observe"
-#        elif t > OBSERVE and t <= OBSERVE + EXPLORE:
-#            state = "explore"
-#        else:b
-#            state = "train"
-#        print("TIMESTEP", t, "/ STATE", state, "/ EPSILON", epsilon, "/ ACTION", action_index, "/ REWARD", r_t, "/ Q_MAX %e" % np.max(readout_t))                
+             
     game.close()
       
 
@@ -321,7 +311,7 @@ def main():
 
     # is this flag set, the game will not store any weights and
     # will play for a few rounds
-    EVALUATE = False
+    EVALUATE = True
     
     # is this flag set, the game will store a lot of information in
     # additional files and on the console
