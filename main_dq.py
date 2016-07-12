@@ -27,24 +27,20 @@ STRIDE3 = 1
 
 GAMMA = 0.95 # decay rate of past observations
 OBSERVE = 590000 # timesteps to observe before training
-#EXPLORE = 10000000 # frames over which to anneal epsilon
 FINAL_EPSILON = 0.05 # final value of epsilon
 INITIAL_EPSILON = 1.0 # starting value of epsilon
 REPLAY_MEMORY = 590000 # number of previous transitions to remember
 BATCH = 32 # size of minibatch
-#K = 1 # only select an action every Kth frame, repeat prev for others
-#STACK = 1 # number of images stacked to a state
 GAME = "Doom"
 END = int( 2.5 * math.pow(10,6) )
-#END = 2000
 STORE = int( 0.1 * math.pow(10,6) )
 
 # for feedback
 IMG_STORED_INTERVAL = 1
-MAX_IMG_STORED = 0
+MAX_IMG_STORED = 20
 OBSERVE_EVALUATE = 100
-END_EVALUATE = 500
-SLEEPTIME = 0.3
+END_EVALUATE = 100
+SLEEPTIME = 0.0
 
 def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, anneal_epsilon, with_depth, evaluate, feedback):
 #==============================================================================
@@ -59,6 +55,8 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
 # sess      tensorflow-session
 #  
 #==============================================================================
+
+    t = 0
 
     store_path = "logs_stack" + str(stack) + "_frame_action" + str(frame_action) + "_annealing" + str(anneal_epsilon) + "_withDepth" + str(with_depth)    
     if not os.path.exists(store_path):
@@ -101,11 +99,18 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
     # create first image
     gray = nc.getGray(game_state)
     
+    #if with_depth:
+    #    depth = game_state.image_buffer[3,:,:]
+    #    x_t = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X)
+    #else:
+    #    x_t = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X)
+    
     if with_depth:
         depth = game_state.image_buffer[3,:,:]
-        x_t = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X)
+        # store filter images if feedback is true
+        x_t = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X, False, t)
     else:
-        x_t = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X)
+        x_t = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X, False, t)    
     
     # stack images
     s_t = nc.create_state(x_t, stack)
@@ -132,8 +137,6 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
         observe = OBSERVE
         epsilon = INITIAL_EPSILON
         end = END
-        
-    t = 0
         
     start_time = time.time()
 
@@ -211,9 +214,16 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             # add depth image if defined
             if with_depth:
                 depth = game_state.image_buffer[3,:,:]
-                x_t1 = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X)
+                # store filter images if feedback is true
+                if t % IMG_STORED_INTERVAL == 0 and imgcnt < maximg:
+                    x_t1 = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X, True, t)
+                else:
+                    x_t1 = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X, False, t)
             else:
-                x_t1 = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X)
+                if t % IMG_STORED_INTERVAL == 0 and imgcnt < maximg:
+                    x_t1 = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X, True, t)
+                else:
+                    x_t1 = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X, False, t)
             
             # add image to the state
             s_t1 = nc.update_state(s_t, x_t1)
@@ -259,10 +269,6 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
                 y : y_batch,
                 a : a_batch,
                 s : s_batch})
-
-        # update the old values
-        s_t = s_t1
-        t += 1
         
         
         if feedback:
@@ -303,6 +309,10 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             print("Reward per step:", reward_p_turn)
             print("************************* Done *************************")
             break
+        
+        # update the old values
+        s_t = s_t1
+        t += 1
              
     game.close()
       
@@ -315,7 +325,7 @@ def main():
     
     # is this flag set, the game will store a lot of information in
     # additional files and on the console
-    FEEDBACK = False
+    FEEDBACK = True
       
     stack = int(sys.argv[1])
     frame_action = int(sys.argv[2])
