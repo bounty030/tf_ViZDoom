@@ -1,0 +1,2 @@
+model_checkpoint_path: "Doom-dqn-2000000"
+all_model_checkpoint_paths: "Doom-dqn-2000000"

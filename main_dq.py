@@ -43,7 +43,7 @@ STORE = int( 0.1 * math.pow(10,6) )
 IMG_STORED_INTERVAL = 1
 MAX_IMG_STORED = 0
 OBSERVE_EVALUATE = 100
-END_EVALUATE = 500
+END_EVALUATE = 100000
 SLEEPTIME = 0.3
 
 def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, anneal_epsilon, with_depth, evaluate, feedback):
@@ -63,20 +63,23 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
     store_path = "logs_stack" + str(stack) + "_frame_action" + str(frame_action) + "_annealing" + str(anneal_epsilon) + "_withDepth" + str(with_depth)    
     if not os.path.exists(store_path):
         os.makedirs(store_path)        
-    reward_path = store_path + "/reward.txt"
-    #reward_file = open(reward_path, 'w')
-    #reward_file.close()
+    
 
     if feedback:
         feedback_path = "feedback"
         if not os.path.exists(feedback_path):
             os.makedirs(feedback_path)
-        qfile_path = feedback_path + "/qfile.txt"
-        qfile = open(qfile_path, 'w')
-        qfile.close()
+        reward_path = feedback_path + "/reward" + store_path + ".txt"
+        reward_file = open(reward_path, 'w')
+        reward_file.close()
         
-        imgcnt = 0
-        maximg = MAX_IMG_STORED
+
+    #    qfile_path = feedback_path + "/qfile.txt" + store_path
+    #    qfile = open(qfile_path, 'w')
+    #    qfile.close()
+        
+       # imgcnt = 0
+       # maximg = MAX_IMG_STORED
         
     
     #tensorflow variable for the actions
@@ -196,14 +199,14 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
 
             if feedback:
                 print('t:',t)
-                print("Q-values:", readout_t)
-                print("Death counter:", death_counter)
-                print("New Health:", new_health)
-                print("Old Health:", old_health)
-                print('Reward for this turn:',r_t)
-                print("Diff Health:", diff_health)
-                print("Terminal:", terminal)
-                print("Reward per step:", reward_p_turn)
+                #print("Q-values:", readout_t)
+                #print("Death counter:", death_counter)
+                #print("New Health:", new_health)
+                #print("Old Health:", old_health)
+                #print('Reward for this turn:',r_t)
+                #print("Diff Health:", diff_health)
+                #print("Terminal:", terminal)
+                #print("Reward per step:", reward_p_turn)
             
             # get image
             gray = nc.getGray(game_state)
@@ -265,19 +268,17 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
         t += 1
         
         
-        if feedback:
-            if SLEEPTIME >0:            
-                time.sleep(SLEEPTIME)
+        #if feedback:
+        #    if SLEEPTIME >0:            
+        #        time.sleep(SLEEPTIME)
             
             #todo store q-value and image every x steps
-            if t % IMG_STORED_INTERVAL == 0 and imgcnt < maximg:
-                nc.store_img(x_t1, t, feedback_path)
-                imgcnt += 1
-                
-                #and store the corresponding q-values
-                qfile = open(qfile_path, 'a')
-                qfile.write(str(t) + ": Q-Values:" + str(readout_t) + "\n")
-                qfile.close() 
+        if t % 500 == 0:
+            #and store the corresponding q-values
+            current_time = time.time() - start_time
+            reward_file = open(reward_path, 'a')
+            reward_file.write(str(t) + ": Reward per turn: " + str(reward_p_turn) + ", Time: " + str(current_time) + "\n")
+            reward_file.close() 
         
         # save progress every x iterations
         if not evaluate:

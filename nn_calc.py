@@ -108,15 +108,3 @@ def create_state(img, stack):
     for i in range(1, stack):
         state = np.append(img, state, axis=2)
     return state
-    
-def store_img(img):
-    cv2.imwrite('image.png', img)
-    
-def store_img(img, add):
-    name  = 'image_' + str(add) + '.png'
-    cv2.imwrite(name, img)
-    
-def store_img(img, add, path):
-    name  = 'image_' + str(add) + '.png'
-    cv2.imwrite(os.path.join(path, name), img)
-    

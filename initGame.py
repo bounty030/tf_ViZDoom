@@ -24,7 +24,7 @@ def initgame(evaluate):
 
     #vizdoom_path = "/home/tbfk/Mount/intHDD/Documents/Studium/TU_Berlin/Elektrotechnik_Master/SS16/Projekt_Nachrichtenuebertragung/ViZDoom"
     #vizdoom_path = "/home/martin/python/ViZDoom"
-    vizdoom_path = "../ViZDoom"
+    vizdoom_path = "../../../ViZDoom"
 
 # Sets path to vizdoom engine executive which will be spawned as a separate process. Default is "./vizdoom".
     game.load_config(vizdoom_path + "/examples/config/health_gathering.cfg")
@@ -73,7 +73,7 @@ def initgame(evaluate):
 
 # Makes the window appear (turned on by default)
     if evaluate:
-        game.set_window_visible(True)
+        game.set_window_visible(False)
     else:
         game.set_window_visible(False)
 
@@ -94,7 +94,7 @@ def initgame(evaluate):
 # 5 more combinations are naturally possible but only 3 are included for transparency when watching.	
     #actions = [[True,False,False],[False,True,False],[False,False,True]]
     #actions = [[1,0,0],[0,1,0],[0,0,1],[1,0,1],[0,1,1]]
-    actions = [[1,0,1],[0,1,1],[0,0,1]]
+    actions = [[1,0,0],[0,1,0],[0,0,1],[1,0,1],[0,1,1]]
     
 
     num_actions = len(actions)
