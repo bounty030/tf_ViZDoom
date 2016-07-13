@@ -17,16 +17,16 @@ import time
 IMAGE_SIZE_X = 120 # resolution of the image for the network
 IMAGE_SIZE_Y = 120
 
-KERNEL1 = 5
+KERNEL1 = 4
 KERNEL2 = 3
 KERNEL3 = 2
 
-STRIDE1 = 4
+STRIDE1 = 2
 STRIDE2 = 2
 STRIDE3 = 1
 
 GAMMA = 0.95 # decay rate of past observations
-OBSERVE = 590000 # timesteps to observe before training
+OBSERVE = 300000 # timesteps to observe before training
 FINAL_EPSILON = 0.05 # final value of epsilon
 INITIAL_EPSILON = 1.0 # starting value of epsilon
 REPLAY_MEMORY = 590000 # number of previous transitions to remember
@@ -37,9 +37,9 @@ STORE = int( 0.1 * math.pow(10,6) )
 
 # for feedback
 IMG_STORED_INTERVAL = 1
-MAX_IMG_STORED = 20
-OBSERVE_EVALUATE = 100
-END_EVALUATE = 100
+MAX_IMG_STORED = 200
+OBSERVE_EVALUATE = BATCH
+END_EVALUATE = 5000
 SLEEPTIME = 0.0
 
 def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, anneal_epsilon, with_depth, evaluate, feedback):
@@ -215,12 +215,12 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             if with_depth:
                 depth = game_state.image_buffer[3,:,:]
                 # store filter images if feedback is true
-                if t % IMG_STORED_INTERVAL == 0 and imgcnt < maximg:
+                if feedback and t % IMG_STORED_INTERVAL == 0 and imgcnt < maximg:
                     x_t1 = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X, True, t)
                 else:
                     x_t1 = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X, False, t)
             else:
-                if t % IMG_STORED_INTERVAL == 0 and imgcnt < maximg:
+                if feedback and t % IMG_STORED_INTERVAL == 0 and imgcnt < maximg:
                     x_t1 = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X, True, t)
                 else:
                     x_t1 = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X, False, t)
@@ -277,7 +277,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             
             #todo store q-value and image every x steps
             if t % IMG_STORED_INTERVAL == 0 and imgcnt < maximg:
-                nc.store_img(x_t1, t, feedback_path)
+                nc.store_img(x_t1, str(t), feedback_path)
                 imgcnt += 1
                 
                 #and store the corresponding q-values
@@ -325,7 +325,7 @@ def main():
     
     # is this flag set, the game will store a lot of information in
     # additional files and on the console
-    FEEDBACK = True
+    FEEDBACK = False
       
     stack = int(sys.argv[1])
     frame_action = int(sys.argv[2])

@@ -17,7 +17,7 @@ python main_dq.py 1 1 700000 1
 #python main_dq.py 2 3 1000000 1
 #python main_dq.py 2 3 1000000 0
 #stack 4
-python main_dq.py 4 1 700000 1
+##python main_dq.py 4 1 700000 1
 #python main_dq.py 4 1 1000000 0
 #python main_dq.py 4 3 1000000 1
-python main_dq.py 4 3 700000 0
+##python main_dq.py 4 3 700000 0

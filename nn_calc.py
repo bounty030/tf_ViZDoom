@@ -48,22 +48,33 @@ def image_postprocessing(img, t_size_y, t_size_x, feedback, t):
     
 # add image and depth image
 def image_postprocessing_depth(gray, depth, t_size_y, t_size_x, feedback, t):
+
+    if feedback:
+        cv2.imwrite('feedback/image_' + str(t) + '_gray_0_input.png', gray) 
+        cv2.imwrite('feedback/image_' + str(t) + '_depth_0_input.png', gray) 
     
     # resize and cut images
     gray = cv2.resize(gray, (t_size_y, t_size_x))
-    depth = cv2.resize(depth, (t_size_y, t_size_x))
-    gray = gray[t_size_y/2-1:-1,:]
-    depth = depth[t_size_y/2-1:-1,:]
-    
     if feedback:
-        cv2.imwrite('feedback/image_' + str(t) + '_gray.png', gray)
-        cv2.imwrite('feedback/image_' + str(t) + '_depth.png', depth)
+        cv2.imwrite('feedback/image_' + str(t) + '_gray_1_resize.png', gray)
+        
+    depth = cv2.resize(depth, (t_size_y, t_size_x))
+    if feedback:
+        cv2.imwrite('feedback/image_' + str(t) + '_depth_1_resize.png', depth)
+        
+    gray = gray[t_size_y/2-1:-1,:]
+    if feedback:
+        cv2.imwrite('feedback/image_' + str(t) + '_gray_2_cut.png', gray)
+        
+    depth = depth[t_size_y/2-1:-1,:]
+    if feedback:
+        cv2.imwrite('feedback/image_' + str(t) + '_depth_2_cut.png', depth)
     
     # threshold filter for the grayscale image
     ret,gray = cv2.threshold(gray,160,255,cv2.THRESH_BINARY)
     
     if feedback:
-        cv2.imwrite('feedback/image_' + str(t) + '_gray_flt.png', gray)
+        cv2.imwrite('feedback/image_' + str(t) + '_gray_3_flt.png', gray)
     
     
     # custom filter for the depth image
@@ -71,7 +82,7 @@ def image_postprocessing_depth(gray, depth, t_size_y, t_size_x, feedback, t):
     ret, depth = cv2.threshold(depth,165,255,cv2.THRESH_TOZERO)
     
     if feedback:
-        cv2.imwrite('feedback/image_' + str(t) + '_depth_1.png', depth)
+        cv2.imwrite('feedback/image_' + str(t) + '_depth_3_flt_inv.png', depth)
     
     height, width = depth.shape
 
@@ -79,12 +90,12 @@ def image_postprocessing_depth(gray, depth, t_size_y, t_size_x, feedback, t):
     minval = np.min(depth[np.nonzero(depth)])
     depth[np.nonzero(depth)] -= minval
     if feedback:
-        cv2.imwrite('feedback/image_' + str(t) + '_depth_2.png', depth)
+        cv2.imwrite('feedback/image_' + str(t) + '_depth_4_off.png', depth)
     
     # return the added image
     result = cv2.add(gray,depth)
-    #if feedback:
-    #    cv2.imwrite('feedback/image_' + str(t) + '_filter.png', result)
+    if feedback:
+        cv2.imwrite('feedback/image_' + str(t) + '_final.png', result)
     
     return result
 
@@ -117,6 +128,6 @@ def store_img(img, add):
     cv2.imwrite(name, img)
     
 def store_img(img, add, path):
-    name  = 'image_' + str(add) + '.png'
+    name  = 'image_' + add + '.png'
     cv2.imwrite(os.path.join(path, name), img)
     
