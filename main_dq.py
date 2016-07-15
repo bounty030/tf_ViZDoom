@@ -17,7 +17,7 @@ import time
 IMAGE_SIZE_X = 120 # resolution of the image for the network
 IMAGE_SIZE_Y = 120
 
-KERNEL1 = 4
+KERNEL1 = 5
 KERNEL2 = 3
 KERNEL3 = 2
 
@@ -26,7 +26,7 @@ STRIDE2 = 2
 STRIDE3 = 1
 
 GAMMA = 0.95 # decay rate of past observations
-OBSERVE = 300000 # timesteps to observe before training
+OBSERVE = 200000 # timesteps to observe before training
 FINAL_EPSILON = 0.05 # final value of epsilon
 INITIAL_EPSILON = 1.0 # starting value of epsilon
 REPLAY_MEMORY = 590000 # number of previous transitions to remember
@@ -40,7 +40,7 @@ IMG_STORED_INTERVAL = 1
 MAX_IMG_STORED = 200
 OBSERVE_EVALUATE = BATCH
 END_EVALUATE = 5000
-SLEEPTIME = 0.0
+SLEEPTIME = 0.028
 
 def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, anneal_epsilon, with_depth, evaluate, feedback):
 #==============================================================================
@@ -56,7 +56,14 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
 #  
 #==============================================================================
 
-    t = 0
+    t = 1
+    t_last_save = 0
+    reward_p_turn = 0    
+    #init old_health
+    old_health = 0    
+    #init reward
+    reward_all = 0    
+    crate_counter = 0
 
     store_path = "logs_stack" + str(stack) + "_frame_action" + str(frame_action) + "_annealing" + str(anneal_epsilon) + "_withDepth" + str(with_depth)    
     if not os.path.exists(store_path):
@@ -140,11 +147,6 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
         
     start_time = time.time()
 
-    #init old_health
-    old_health = 0
-    
-    #init reward
-    reward_all = 0
     
     print("************************* Running *************************")
 
@@ -194,8 +196,10 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             diff_health = float(new_health - old_health) # has to be conv. to float for game.set_living_reward()
             if diff_health > 0 and not terminal: # no positive reward if player died (player respawned with new health)
                 r_t = 25.0
+                crate_counter += 1
+                
             reward_all += r_t
-            reward_p_turn = reward_all / (t+1)
+            #reward_p_turn = reward_all / (t+1)
 
             if feedback:
                 print('t:',t)
@@ -206,7 +210,8 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
                 print('Reward for this turn:',r_t)
                 print("Diff Health:", diff_health)
                 print("Terminal:", terminal)
-                print("Reward per step:", reward_p_turn)
+                print("Crates collected:", crate_counter)
+                print("Reward overall:", reward_all)
             
             # get image
             gray = nc.getGray(game_state)
@@ -237,7 +242,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             old_health = new_health
             
         # after action(s) are executed start the training
-        if t > observe:
+        if t > observe and not evaluate:
             if t == observe+1:
                 print("Observing done")
             
@@ -292,21 +297,33 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
                 
                 current_time = time.time() - start_time
                 
+                reward_p_turn = reward_all / (t-t_last_save)
+                #crate_p_turn = crate_counter / (t-t_last_save)
+                #print("crate/turn:", crate_p_turn)
+                
                 reward_file = open(reward_path, 'a')
-                reward_file.write(str(t) + ": Reward: " + str(reward_p_turn) + ", Time: " + str(current_time) + "\n")
+                reward_file.write(str(t) + ":\n reward " + str(round(reward_p_turn, 4)) + ", time " + str(round(current_time, 4)) + ", crates " + str(round(crate_counter, 4)) + "\n")
                 reward_file.close() 
                 
                 print("Saved weights after", t, "steps")
+                
+                t_last_save = t
+                reward_all = 0
+                crate_counter = 0
         
         # end the program if final step reached
         if t == end:
 
             reward_file = open(reward_path, 'a')
             reward_file.write("-- Network terminated --\n")
-            reward_file.close()            
+            reward_file.close()    
+            
+            reward_p_turn = reward_all / (t-t_last_save)
+            #crate_p_turn = crate_counter / (t-t_last_save)
             
             print("Network reached final step", end)
             print("Reward per step:", reward_p_turn)
+            print("Crates per step:", crate_counter)
             print("************************* Done *************************")
             break
         
