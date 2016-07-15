@@ -21,7 +21,7 @@ KERNEL1 = 5
 KERNEL2 = 3
 KERNEL3 = 2
 
-STRIDE1 = 2
+STRIDE1 = 4
 STRIDE2 = 2
 STRIDE3 = 1
 
@@ -76,6 +76,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
         feedback_path = "feedback"
         if not os.path.exists(feedback_path):
             os.makedirs(feedback_path)
+            os.makedirs(feedback_path + "/forVideo")
         qfile_path = feedback_path + "/qfile.txt"
         qfile = open(qfile_path, 'w')
         qfile.close()
@@ -230,6 +231,9 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
                 else:
                     x_t1 = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X, False, t)
             
+            if feedback:
+                nc.store_img(gray, str(t), feedback_path + "/forVideo")
+            
             # add image to the state
             s_t1 = nc.update_state(s_t, x_t1)
             
@@ -282,7 +286,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             
             #todo store q-value and image every x steps
             if t % IMG_STORED_INTERVAL == 0 and imgcnt < maximg:
-                nc.store_img(x_t1, str(t), feedback_path)
+                #nc.store_img(x_t1, str(t), feedback_path)
                 imgcnt += 1
                 
                 #and store the corresponding q-values
@@ -338,11 +342,11 @@ def main():
 
     # is this flag set, the game will not store any weights and
     # will play for a few rounds
-    EVALUATE = False
+    EVALUATE = True
     
     # is this flag set, the game will store a lot of information in
     # additional files and on the console
-    FEEDBACK = False
+    FEEDBACK = True
       
     stack = int(sys.argv[1])
     frame_action = int(sys.argv[2])
