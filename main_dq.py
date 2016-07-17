@@ -27,20 +27,20 @@ STRIDE3 = 1
 
 GAMMA = 0.95 # decay rate of past observations
 OBSERVE = 200000 # timesteps to observe before training
-FINAL_EPSILON = 0.05 # final value of epsilon
+FINAL_EPSILON = 1.0#0.05 # final value of epsilon
 INITIAL_EPSILON = 1.0 # starting value of epsilon
 REPLAY_MEMORY = 590000 # number of previous transitions to remember
 BATCH = 32 # size of minibatch
 GAME = "Doom"
 END = int( 2.5 * math.pow(10,6) )
-STORE = int( 0.1 * math.pow(10,6) )
+STORE = int( 0.01 * math.pow(10,6) )
 
 # for feedback
 IMG_STORED_INTERVAL = 1
-MAX_IMG_STORED = 200
+MAX_IMG_STORED = 500
 OBSERVE_EVALUATE = BATCH
-END_EVALUATE = 5000
-SLEEPTIME = 0.028
+END_EVALUATE = 3000
+SLEEPTIME = 0
 
 def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, anneal_epsilon, with_depth, evaluate, feedback):
 #==============================================================================
@@ -232,7 +232,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
                     x_t1 = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X, False, t)
             
             if feedback:
-                nc.store_img(gray, str(t), feedback_path + "/forVideo")
+                nc.store_img(nc.getColor(game_state), nc.get_t(t), feedback_path + "/forVideo")
             
             # add image to the state
             s_t1 = nc.update_state(s_t, x_t1)
@@ -327,7 +327,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             
             print("Network reached final step", end)
             print("Reward per step:", reward_p_turn)
-            print("Crates per step:", crate_counter)
+            print("Crates overall:", crate_counter)
             print("************************* Done *************************")
             break
         
@@ -342,11 +342,11 @@ def main():
 
     # is this flag set, the game will not store any weights and
     # will play for a few rounds
-    EVALUATE = True
+    EVALUATE = False
     
     # is this flag set, the game will store a lot of information in
     # additional files and on the console
-    FEEDBACK = True
+    FEEDBACK = False
       
     stack = int(sys.argv[1])
     frame_action = int(sys.argv[2])
@@ -364,7 +364,7 @@ def main():
         print("Executing network with following parameters:")
         print("Images stacked together:", stack)
         print("New action will be taken every", frame_action, "frame")
-        print("Randomization factor will anneal to", FINAL_EPSILON, "% over", explore_anneal, "steps")
+        print("Randomization factor will anneal to", FINAL_EPSILON*100, "% over", explore_anneal, "steps")
         print("Adding depth image:", with_depth)  
         print("Network will observe for", OBSERVE, "steps before calibrating")
         print("Weights will be saved every", STORE, "steps")
