@@ -26,9 +26,9 @@ STRIDE2 = 2
 STRIDE3 = 1
 
 GAMMA = 0.95 # decay rate of past observations
-OBSERVE = 200000 # timesteps to observe before training
-FINAL_EPSILON = 1.0#0.05 # final value of epsilon
-INITIAL_EPSILON = 1.0 # starting value of epsilon
+OBSERVE = 32 # timesteps to observe before training
+FINAL_EPSILON = 0.05 # final value of epsilon
+INITIAL_EPSILON = 0.05#1.0 # starting value of epsilon
 REPLAY_MEMORY = 590000 # number of previous transitions to remember
 BATCH = 32 # size of minibatch
 GAME = "Doom"
@@ -37,9 +37,9 @@ STORE = int( 0.01 * math.pow(10,6) )
 
 # for feedback
 IMG_STORED_INTERVAL = 1
-MAX_IMG_STORED = 500
+MAX_IMG_STORED = 100
 OBSERVE_EVALUATE = BATCH
-END_EVALUATE = 3000
+END_EVALUATE = 2000
 SLEEPTIME = 0
 
 def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, anneal_epsilon, with_depth, evaluate, feedback):
@@ -151,7 +151,11 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
     
     print("************************* Running *************************")
 
-    while "pigs" != "fly":        
+    while "pigs" != "fly":
+
+        if evaluate:
+            if SLEEPTIME >0:            
+                time.sleep(SLEEPTIME)
 
         # get the Q-values of every action for the current state
         readout_t = readout.eval(feed_dict = {s : [s_t]})[0]
@@ -281,8 +285,6 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
         
         
         if feedback:
-            if SLEEPTIME >0:            
-                time.sleep(SLEEPTIME)
             
             #todo store q-value and image every x steps
             if t % IMG_STORED_INTERVAL == 0 and imgcnt < maximg:
