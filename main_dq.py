@@ -28,7 +28,7 @@ STRIDE3 = 1
 GAMMA = 0.95 # decay rate of past observations
 OBSERVE = 32 # timesteps to observe before training
 FINAL_EPSILON = 0.05 # final value of epsilon
-INITIAL_EPSILON = 0.05#1.0 # starting value of epsilon
+INITIAL_EPSILON = 1#1.0 # starting value of epsilon
 REPLAY_MEMORY = 590000 # number of previous transitions to remember
 BATCH = 32 # size of minibatch
 GAME = "Doom"
@@ -37,7 +37,7 @@ STORE = int( 0.01 * math.pow(10,6) )
 
 # for feedback
 IMG_STORED_INTERVAL = 1
-MAX_IMG_STORED = 100
+MAX_IMG_STORED = 0
 OBSERVE_EVALUATE = BATCH
 END_EVALUATE = 2000
 SLEEPTIME = 0
@@ -344,7 +344,7 @@ def main():
 
     # is this flag set, the game will not store any weights and
     # will play for a few rounds
-    EVALUATE = False
+    EVALUATE = True
     
     # is this flag set, the game will store a lot of information in
     # additional files and on the console
