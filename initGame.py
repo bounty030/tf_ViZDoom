@@ -13,7 +13,7 @@
 #####################################################################
 from __future__ import print_function
 from vizdoom import *
-def initgame():
+def initgame(feedback):
 # Create DoomGame instance. It will run the game and communicate with you.
     game = DoomGame()
 
@@ -24,7 +24,7 @@ def initgame():
 
     #vizdoom_path = "/home/tbfk/Mount/intHDD/Documents/Studium/TU_Berlin/Elektrotechnik_Master/SS16/Projekt_Nachrichtenuebertragung/ViZDoom"
     #vizdoom_path = "/home/martin/python/ViZDoom"
-    vizdoom_path = "../ViZDoom"
+    vizdoom_path = "../../ViZDoom"
 
 # Sets path to vizdoom engine executive which will be spawned as a separate process. Default is "./vizdoom".
     game.load_config(vizdoom_path + "/examples/config/basic.cfg")
@@ -52,7 +52,7 @@ def initgame():
 # Sets other rendering options
     game.set_render_hud(False)
     game.set_render_crosshair(False)
-    game.set_render_weapon(False)
+    game.set_render_weapon(True)
     game.set_render_decals(False)
     game.set_render_particles(False)
 
@@ -71,7 +71,10 @@ def initgame():
     game.set_episode_start_time(10)
 
 # Makes the window appear (turned on by default)
-    game.set_window_visible(False)
+    if feedback:
+        game.set_window_visible(True)
+    else:
+        game.set_window_visible(False)
 
 # Turns on the sound. (turned off by default)
     game.set_sound_enabled(False)
