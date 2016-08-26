@@ -3,8 +3,8 @@
 #Parameter:
 #1: Amount of stacked images
 #2: Amount of frames until until a new action is predicted
-#3: Amount of actions until epsioln is annealed to the final value (likely 5%)
-#4: Sets if the depth buffer will be added to the input image
+#3: Amount of actions until epsioln is annealed to the final value (default: 5%)
+#4: Sets if the depth buffer will be added to the input image (1 or 0)
 
 #stack 1
 python main_dq.py 1 1 800000 1
