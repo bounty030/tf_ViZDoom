@@ -7,20 +7,25 @@ from initNetwork import *
 import tensorflow as tf
 import numpy as np
 from collections import deque
+
+# implements various calculations
 import nn_calc as nc
+
 import math
 import sys
 import os
 import time
 
-
-IMAGE_SIZE_X = 120 # resolution of the image for the network
+# resolution of the images for the network
+IMAGE_SIZE_X = 120
 IMAGE_SIZE_Y = 120
 
+# kernel size in pixel of the 3 concolutional layers
 KERNEL1 = 5
 KERNEL2 = 3
 KERNEL3 = 2
 
+# stride of the kernels in pixel (x & y)
 STRIDE1 = 4
 STRIDE2 = 2
 STRIDE3 = 1
@@ -32,15 +37,16 @@ INITIAL_EPSILON = 1#1.0 # starting value of epsilon
 REPLAY_MEMORY = 590000 # number of previous transitions to remember
 BATCH = 32 # size of minibatch
 GAME = "Doom"
-END = int( 2.5 * math.pow(10,6) )
-STORE = int( 0.01 * math.pow(10,6) )
+END = int( 2.5 * math.pow(10,6) ) # amount of actions to train
+STORE = int( 0.01 * math.pow(10,6) ) # interval in which the parameters are stored
 
-# for feedback
-IMG_STORED_INTERVAL = 1
-MAX_IMG_STORED = 0
-OBSERVE_EVALUATE = BATCH
-END_EVALUATE = 2000
-SLEEPTIME = 0
+# for feedback and evaluate
+IMG_STORED_INTERVAL = 1 # store current image every x frame
+MAX_IMG_STORED = 0 # maximum amount of stored images
+OBSERVE_EVALUATE = BATCH # set observe to the lowest value
+REWARD_LOG_EVALUATE = 500 # interval to log the rewards
+END_EVALUATE = 100000 # actions until the evaluation is stopped
+SLEEPTIME = 0 # time between actions (for better visibility)
 
 def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, frame_action, anneal_epsilon, with_depth, evaluate, feedback):
 #==============================================================================
@@ -56,22 +62,23 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
 #  
 #==============================================================================
 
-    t = 1
-    t_last_save = 0
-    reward_p_turn = 0    
-    #init old_health
-    old_health = 0    
-    #init reward
-    reward_all = 0    
-    crate_counter = 0
+	# initialize values
+    t = 1 # first turn
+    t_last_save = 0 # last time the weights were stored 
+    reward_p_turn = 0 # value for reward / action
+    old_health = 0 # health @ last action
+    reward_all = 0 # sum over all rewards
+    crate_counter = 0 # overall collected crates (health-kits)
 
+	# path to store the weights
     store_path = "logs_stack" + str(stack) + "_frame_action" + str(frame_action) + "_annealing" + str(anneal_epsilon) + "_withDepth" + str(with_depth)    
     if not os.path.exists(store_path):
         os.makedirs(store_path)        
+        
+	# path to sotre evaluation txt
     reward_path = store_path + "/reward.txt"
-    #reward_file = open(reward_path, 'w')
-    #reward_file.close()
 
+	# initialize feedback parameters, if flag is set
     if feedback:
         feedback_path = "feedback"
         if not os.path.exists(feedback_path):
@@ -80,8 +87,11 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
         qfile_path = feedback_path + "/qfile.txt"
         qfile = open(qfile_path, 'w')
         qfile.close()
+        # qfile contains information for every action
         
+        # current counter for feedback images
         imgcnt = 0
+        # maximum amount of feedback images
         maximg = MAX_IMG_STORED
         
     
@@ -89,7 +99,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
     a = tf.placeholder("float", [None, num_actions])
     #tensorflow variable for the target in the cost function
     y = tf.placeholder("float", [None])
-    #multiply the action with the result of our network => Q(s,a)
+    #multiply the action with the result of our network
     readout_action = tf.reduce_sum(tf.mul(readout, a), reduction_indices = 1)
     
     #cost function and gradient
@@ -104,18 +114,12 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
     # store the previous observations in replay memory
     D = deque()
     
-    # create first image
+    # create first image (grayscale)
     gray = nc.getGray(game_state)
     
-    #if with_depth:
-    #    depth = game_state.image_buffer[3,:,:]
-    #    x_t = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X)
-    #else:
-    #    x_t = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X)
-    
+    # create final image (if flag is set, with depth-image)
     if with_depth:
         depth = game_state.image_buffer[3,:,:]
-        # store filter images if feedback is true
         x_t = nc.image_postprocessing_depth(gray, depth, IMAGE_SIZE_Y, IMAGE_SIZE_X, False, t)
     else:
         x_t = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X, False, t)    
@@ -138,21 +142,25 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
         
     # define learning parameters
     if evaluate:
+		# no training => no random actions and no observations
         epsilon = FINAL_EPSILON
         observe = OBSERVE_EVALUATE
         end = END_EVALUATE + OBSERVE_EVALUATE
     else:
+		# normal training
         observe = OBSERVE
         epsilon = INITIAL_EPSILON
         end = END
         
+	# get current time
     start_time = time.time()
 
-    
     print("************************* Running *************************")
 
+	# training loop
     while "pigs" != "fly":
 
+		# wait between actionsfor better visualization
         if evaluate:
             if SLEEPTIME >0:            
                 time.sleep(SLEEPTIME)
@@ -162,6 +170,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
         # the zero makes an array out of the returend matrix (3,1)
         
         # choose random action or best action (dependent on epsilon)
+        # if still observing, only random actions
         a_t =  [0] * num_actions
         action_index = 0
         if random.random() <= epsilon or t <= observe:
@@ -171,7 +180,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             action_index = np.argmax(readout_t)
             a_t[action_index] = 1
             
-        # scale down epsilon
+        # scale down epsilon (if finished observing)
         if epsilon > FINAL_EPSILON and t > OBSERVE:
             epsilon -= (INITIAL_EPSILON - FINAL_EPSILON) / anneal_epsilon
             if epsilon <= FINAL_EPSILON:
@@ -183,7 +192,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             # run the selected action and observe next state and reward
             r_t = game.make_action(a_t)
             
-            # store whether the episode terminated
+            # store if the episode terminated
             terminal = game.is_episode_finished()
             
             # restart the game if it terminated
@@ -197,14 +206,16 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             new_health = game_state.game_variables[0] 
             death_counter = game_state.game_variables[1]
             
-            # calculate new values
+            # calculate new reward values
             diff_health = float(new_health - old_health) # has to be conv. to float for game.set_living_reward()
-            if diff_health > 0 and not terminal: # no positive reward if player died (player respawned with new health)
+            # if health increased => collected a crate (+25)
+            # no positive reward if player died (player respawned with new health)
+            if diff_health > 0 and not terminal:
                 r_t = 25.0
                 crate_counter += 1
                 
+			# update overall reward
             reward_all += r_t
-            #reward_p_turn = reward_all / (t+1)
 
             if feedback:
                 print('t:',t)
@@ -235,6 +246,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
                 else:
                     x_t1 = nc.image_postprocessing(gray, IMAGE_SIZE_Y, IMAGE_SIZE_X, False, t)
             
+            # store color image for video creation (we better get a lot of points in the presentation!)
             if feedback:
                 nc.store_img(nc.getColor(game_state), nc.get_t(t), feedback_path + "/forVideo")
             
@@ -286,7 +298,7 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
         
         if feedback:
             
-            #todo store q-value and image every x steps
+            # store an image for feedback if amximum amount not yet reached
             if t % IMG_STORED_INTERVAL == 0 and imgcnt < maximg:
                 #nc.store_img(x_t1, str(t), feedback_path)
                 imgcnt += 1
@@ -304,14 +316,27 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
                 current_time = time.time() - start_time
                 
                 reward_p_turn = reward_all / (t-t_last_save)
-                #crate_p_turn = crate_counter / (t-t_last_save)
-                #print("crate/turn:", crate_p_turn)
                 
                 reward_file = open(reward_path, 'a')
                 reward_file.write(str(t) + ":\n reward " + str(round(reward_p_turn, 4)) + ", time " + str(round(current_time, 4)) + ", crates " + str(round(crate_counter, 4)) + "\n")
                 reward_file.close() 
                 
                 print("Saved weights after", t, "steps")
+                
+                # reset paramters
+                t_last_save = t
+                reward_all = 0
+                crate_counter = 0
+                
+		# if in evaluation mode store in a different interval
+        else:
+            if t % REWARD_LOG_EVALUATE == 0:
+                current_time = time.time() - start_time
+                reward_p_turn = reward_all / (t-t_last_save)
+                reward_file = open(reward_path, 'a')
+                reward_file.write("Evaluation_" + str(t) + ":\n reward " + str(round(reward_p_turn, 4)) + ", time " + str(round(current_time, 4)) + ", crates " + str(round(crate_counter, 4)) + "\n")
+                reward_file.close()
+                
                 
                 t_last_save = t
                 reward_all = 0
@@ -325,7 +350,6 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
             reward_file.close()    
             
             reward_p_turn = reward_all / (t-t_last_save)
-            #crate_p_turn = crate_counter / (t-t_last_save)
             
             print("Network reached final step", end)
             print("Reward per step:", reward_p_turn)
@@ -343,17 +367,27 @@ def trainNetwork(actions, num_actions, game, s, readout, h_fc1, sess, stack, fra
 def main():
 
     # is this flag set, the game will not store any weights and
-    # will play for a few rounds
+    # will only play for a few rounds
+    # information will be stored how successful the network is
     EVALUATE = True
     
     # is this flag set, the game will store a lot of information in
     # additional files and on the console
+    # also a lot of images will be stored
     FEEDBACK = False
-      
+    
+    # the images stacked together
     stack = int(sys.argv[1])
+    
+    # the amount of frames an action is repeated until a new one is selected
     frame_action = int(sys.argv[2])
+    
+    # the amount of actions until epsilon reaches his final value
     explore_anneal = int(sys.argv[3])
+    
+    # if the depth image is added to the normal grayscale image
     with_depth = sys.argv[4]
+    
     if with_depth == "1":
         with_depth = True
     else:
